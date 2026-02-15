@@ -1,6 +1,6 @@
 # Editorial.io - Complete Editorial Workflow Suite for WordPress
 
-[![Try on WordPress Playground](https://img.shields.io/badge/Try%20on-WordPress%20Playground-blue?logo=wordpress)](https://playground.wordpress.net/?blueprint-url=https://raw.githubusercontent.com/smodiclaw/editorial-io/main/blueprint.json)
+[![Try on WordPress Playground](https://img.shields.io/badge/Try%20on-WordPress%20Playground-blue?logo=wordpress)](https://playground.wordpress.net/?blueprint-url=https://raw.githubusercontent.com/alansmodic/editorial-io/main/blueprint.json)
 
 Editorial.io transforms WordPress into a professional editorial platform by providing advanced workflow tools that major publishing houses and content teams need. Instead of managing multiple separate plugins, Editorial.io offers a unified, modular solution that can grow with your team's needs.
 
@@ -105,13 +105,27 @@ Track changes to images, videos, and media files with visual indicators and thum
 - **Design agencies** tracking visual content changes and client approvals
 - **Consultants** maintaining professional content standards
 
+## 🤖 WordPress Abilities API Integration
+
+Editorial.io is one of the first plugins to integrate with the **WordPress Abilities API** (WP 6.9+), registering every editorial workflow action as a discoverable, schema-validated, permission-gated ability.
+
+**What this means:**
+- **Command Palette:** Editors can type "approve revision" or "schedule publish" directly from the WordPress command palette
+- **AI Agent Ready:** Every ability includes JSON Schema for input/output, enabling AI assistants to programmatically interact with editorial workflows
+- **REST Discoverable:** All 14 abilities are exposed via `wp-abilities/v1/abilities` for external integrations
+- **Newsroom Roles:** Abilities map to editorial hierarchy — Reporter (create), Editor (approve/reject), Managing Editor (publish/schedule), Admin (settings)
+
+**14 registered abilities** across staged revisions, publication checklist, scheduled publishing, and revision timeline — all respecting the feature toggle system.
+
 ## 🏗️ Technical Architecture
 
 **Built for WordPress:** Extends WordPress's native revision system instead of replacing it, ensuring compatibility and performance.
 
 **Modular Design:** Enable only the features you need. Six independent modules can be toggled on/off based on your workflow requirements.
 
-**Developer Friendly:** Comprehensive REST API, action/filter hooks, and clean code architecture make customization straightforward.
+**Abilities API First:** Every editorial action is a registered WordPress Ability with proper permission callbacks, JSON Schema validation, and REST exposure (WP 6.9+).
+
+**Developer Friendly:** Comprehensive REST API, action/filter hooks, WordPress Abilities API, and clean code architecture make customization straightforward.
 
 **Performance Optimized:** Minimal database impact, efficient caching, and smart loading ensure your site stays fast.
 
@@ -125,7 +139,7 @@ Track changes to images, videos, and media files with visual indicators and thum
 
 ### Try It First
 
-[![Try on WordPress Playground](https://img.shields.io/badge/Try%20it%20now-WordPress%20Playground-3858e9?style=for-the-badge&logo=wordpress)](https://playground.wordpress.net/?blueprint-url=https://raw.githubusercontent.com/smodiclaw/editorial-io/main/blueprint.json)
+[![Try on WordPress Playground](https://img.shields.io/badge/Try%20it%20now-WordPress%20Playground-3858e9?style=for-the-badge&logo=wordpress)](https://playground.wordpress.net/?blueprint-url=https://raw.githubusercontent.com/alansmodic/editorial-io/main/blueprint.json)
 
 Experience Editorial.io instantly in a live WordPress environment without installing anything.
 
@@ -156,13 +170,24 @@ Configure Editorial.io to match your existing processes:
 
 ## 🔧 Advanced Usage
 
+### Abilities API (WP 6.9+)
+Every editorial action is a registered ability, consumable by AI agents and external tools:
+```bash
+# Discover all editorial abilities
+GET /wp-json/wp-abilities/v1/abilities?category=editorial-io
+
+# Abilities include JSON Schema for input/output validation
+# Examples: editorial-io/revision.create, editorial-io/revision.approve,
+#           editorial-io/revision.publish, editorial-io/checklist.validate
+```
+
 ### REST API Integration
 Full REST API enables custom integrations:
 ```bash
 # Get all staged revisions
 GET /wp-json/editorial/v1/staged
 
-# Create staged revision  
+# Create staged revision
 POST /wp-json/editorial/v1/posts/{id}/staged
 
 # Compare revisions
@@ -223,6 +248,10 @@ Fully compatible with WordPress multisite:
 
 ## 📈 Roadmap
 
+### Version 1.0 (Shipped)
+- **WordPress Abilities API:** 14 registered abilities for AI agents, command palette, and external tools (WP 6.9+)
+- **Complete Editorial Workflow:** Staged revisions, checklist, scheduling, timeline, diffs, media tracking
+
 ### Version 1.1 (Planned)
 - **AI Content Analysis:** Automated content quality scoring
 - **Advanced Scheduling:** Editorial calendar with drag-drop scheduling
@@ -230,7 +259,7 @@ Fully compatible with WordPress multisite:
 - **Bulk Actions:** Manage multiple staged revisions simultaneously
 
 ### Version 2.0 (Future)
-- **WordPress Abilities API:** Advanced AI-powered editorial features  
+- **Custom Editorial Roles:** Dedicated Reporter, Editor, Managing Editor capabilities
 - **Team Management:** Advanced user roles and workflow assignment
 - **Analytics Integration:** Content performance-based recommendations
 - **Third-party Integrations:** CRM, marketing, and analytics platform connections
@@ -249,4 +278,4 @@ Fully compatible with WordPress multisite:
 
 **Current Version:** 1.0.0  
 **Last Updated:** February 2026  
-**Support:** Create an issue on [GitHub](https://github.com/smodiclaw/editorial-io/issues)
+**Support:** Create an issue on [GitHub](https://github.com/alansmodic/editorial-io/issues)
