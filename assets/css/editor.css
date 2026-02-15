@@ -1,0 +1,409 @@
+/**
+ * Block editor styles for Editorial.io
+ */
+
+/* Editorial.io Sidebar */
+.editorial-io-sidebar {
+    min-height: 300px;
+}
+
+.editorial-io-sidebar .components-panel__body {
+    border-top: 1px solid #e0e0e0;
+}
+
+/* Staged Revisions Panel */
+.editorial-io-staged-panel {
+    padding: 10px 0;
+}
+
+.staged-revision-info {
+    margin-bottom: 15px;
+}
+
+.staged-revision-meta {
+    margin: 10px 0;
+    font-size: 13px;
+    color: #757575;
+}
+
+.staged-revision-meta p {
+    margin: 5px 0;
+}
+
+.staged-revision-actions {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+}
+
+.staged-revision-actions .components-button {
+    justify-content: center;
+}
+
+.no-staged-revision {
+    text-align: center;
+    padding: 15px 0;
+}
+
+.no-staged-revision p {
+    margin: 0 0 15px 0;
+    color: #757575;
+    font-size: 14px;
+}
+
+.no-staged-revision .description {
+    font-size: 12px;
+    color: #999;
+    margin-top: 8px;
+}
+
+/* Revision Timeline */
+.revision-timeline {
+    margin: 10px 0;
+    max-height: 300px;
+    overflow-y: auto;
+}
+
+.revision-item {
+    padding: 10px 0;
+    border-bottom: 1px solid #f0f0f0;
+    position: relative;
+}
+
+.revision-item:last-child {
+    border-bottom: none;
+}
+
+.revision-item.revision-type-staged {
+    background: rgba(33, 150, 243, 0.05);
+    padding: 10px;
+    border-radius: 4px;
+    border: 1px solid rgba(33, 150, 243, 0.2);
+    margin-bottom: 8px;
+}
+
+.revision-item.revision-type-autosave {
+    opacity: 0.7;
+}
+
+.revision-meta {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 5px;
+}
+
+.revision-author {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+}
+
+.author-avatar {
+    width: 20px;
+    height: 20px;
+    border-radius: 50%;
+}
+
+.author-name {
+    font-size: 12px;
+    font-weight: 600;
+    color: #1e1e1e;
+}
+
+.revision-date {
+    font-size: 11px;
+    color: #757575;
+}
+
+.revision-changes {
+    font-size: 11px;
+    color: #666;
+    margin-top: 4px;
+}
+
+.revision-changes small {
+    background: #f5f5f5;
+    padding: 2px 6px;
+    border-radius: 3px;
+}
+
+/* Checklist Modal */
+.editorial-io-checklist-modal {
+    max-width: 500px;
+}
+
+.editorial-io-checklist-modal .components-modal__content {
+    padding: 0;
+}
+
+.editorial-io-checklist-modal .components-modal__header {
+    padding: 20px 20px 0 20px;
+}
+
+.checklist-content {
+    padding: 0 20px 20px 20px;
+}
+
+.checklist-subtitle {
+    margin: 0 0 20px 0;
+    color: #757575;
+    font-size: 14px;
+}
+
+.checklist-items {
+    margin: 20px 0;
+}
+
+.checklist-item {
+    margin-bottom: 12px;
+    padding: 8px 0;
+    border-bottom: 1px solid #f0f0f0;
+}
+
+.checklist-item:last-child {
+    border-bottom: none;
+}
+
+.checklist-item .components-base-control__field {
+    margin-bottom: 0;
+}
+
+.checklist-item .components-checkbox-control__label {
+    font-size: 14px;
+    line-height: 1.4;
+}
+
+.required-indicator {
+    color: #d63638;
+    font-weight: bold;
+}
+
+/* Diff Viewer */
+.editorial-io-diff-viewer {
+    font-family: 'Monaco', 'Menlo', 'Ubuntu Mono', monospace;
+    font-size: 13px;
+    line-height: 1.5;
+    background: #f8f8f8;
+    padding: 15px;
+    border-radius: 4px;
+    margin: 10px 0;
+    overflow-x: auto;
+}
+
+.editorial-io-diff-added {
+    background: #e8f5e8;
+    color: #2d6930;
+    padding: 2px 4px;
+    border-radius: 2px;
+    text-decoration: none;
+}
+
+.editorial-io-diff-removed {
+    background: #ffeef0;
+    color: #b91c1c;
+    padding: 2px 4px;
+    border-radius: 2px;
+    text-decoration: line-through;
+}
+
+.diff-split-view {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 10px;
+}
+
+.diff-split-view .diff-column {
+    background: #fff;
+    border: 1px solid #e0e0e0;
+    border-radius: 4px;
+    padding: 10px;
+    overflow: auto;
+}
+
+.diff-split-view .diff-column h4 {
+    margin: 0 0 10px 0;
+    font-size: 12px;
+    color: #757575;
+    text-transform: uppercase;
+    font-weight: 600;
+}
+
+/* Media Changes */
+.media-changes-panel {
+    margin: 15px 0;
+}
+
+.media-change-item {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding: 8px;
+    background: #f8f8f8;
+    border-radius: 4px;
+    margin-bottom: 8px;
+}
+
+.media-change-item.added {
+    background: #e8f5e8;
+    border-left: 3px solid #2d6930;
+}
+
+.media-change-item.removed {
+    background: #ffeef0;
+    border-left: 3px solid #b91c1c;
+}
+
+.media-thumbnail {
+    width: 32px;
+    height: 32px;
+    border-radius: 4px;
+    object-fit: cover;
+    flex-shrink: 0;
+}
+
+.media-placeholder {
+    width: 32px;
+    height: 32px;
+    background: #ddd;
+    border-radius: 4px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 12px;
+    color: #666;
+    flex-shrink: 0;
+}
+
+.media-info {
+    flex: 1;
+    min-width: 0;
+}
+
+.media-name {
+    font-size: 13px;
+    font-weight: 500;
+    color: #1e1e1e;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+.media-type {
+    font-size: 11px;
+    color: #757575;
+    text-transform: uppercase;
+}
+
+/* Status Indicators */
+.status-indicator {
+    width: 8px;
+    height: 8px;
+    border-radius: 50%;
+    display: inline-block;
+    margin-right: 6px;
+}
+
+.status-pending .status-indicator {
+    background: #f0ad4e;
+}
+
+.status-approved .status-indicator {
+    background: #5cb85c;
+}
+
+.status-rejected .status-indicator {
+    background: #d9534f;
+}
+
+.status-scheduled .status-indicator {
+    background: #5bc0de;
+}
+
+/* Loading States */
+.editorial-io-loading {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 20px;
+    color: #757575;
+}
+
+.editorial-io-loading .components-spinner {
+    margin-right: 8px;
+}
+
+/* Error States */
+.editorial-io-error {
+    padding: 10px;
+    background: #ffeef0;
+    border: 1px solid #f5c2c7;
+    border-radius: 4px;
+    color: #721c24;
+    font-size: 13px;
+}
+
+/* Empty States */
+.editorial-io-empty {
+    text-align: center;
+    padding: 20px;
+    color: #757575;
+    font-style: italic;
+}
+
+/* Responsive Adjustments */
+@media (max-width: 782px) {
+    .diff-split-view {
+        grid-template-columns: 1fr;
+    }
+    
+    .staged-revision-actions {
+        gap: 6px;
+    }
+    
+    .staged-revision-actions .components-button {
+        font-size: 13px;
+        padding: 8px 12px;
+    }
+    
+    .revision-meta {
+        flex-direction: column;
+        align-items: flex-start;
+        gap: 4px;
+    }
+    
+    .checklist-content {
+        padding: 0 15px 15px 15px;
+    }
+    
+    .editorial-io-checklist-modal .components-modal__header {
+        padding: 15px 15px 0 15px;
+    }
+}
+
+/* High contrast mode support */
+@media (prefers-contrast: high) {
+    .editorial-io-diff-added {
+        background: #000;
+        color: #fff;
+    }
+    
+    .editorial-io-diff-removed {
+        background: #800000;
+        color: #fff;
+    }
+    
+    .revision-item.revision-type-staged {
+        border: 2px solid #000;
+        background: #fff;
+    }
+}
+
+/* Reduced motion support */
+@media (prefers-reduced-motion: reduce) {
+    .checklist-item,
+    .revision-item,
+    .media-change-item {
+        transition: none;
+    }
+}
