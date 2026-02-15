@@ -81,10 +81,36 @@ class Editorial_IO_Staged_Revisions {
 			return new WP_Error( 'unsupported_post_type', __( 'Post type does not support staged revisions.', 'editorial-io' ) );
 		}
 
-		// Check if there's already a staged revision.
+		// Check if there's already a staged revision — update it in place.
 		$existing_staged = self::get( $post_id );
 		if ( $existing_staged ) {
-			return new WP_Error( 'staged_revision_exists', __( 'A staged revision already exists for this post.', 'editorial-io' ) );
+			$revision_id = $existing_staged->revision_id;
+
+			$update_data = array(
+				'ID'           => $revision_id,
+				'post_title'   => isset( $post_data['title'] ) ? $post_data['title'] : $post->post_title,
+				'post_content' => isset( $post_data['content'] ) ? $post_data['content'] : $post->post_content,
+				'post_excerpt' => isset( $post_data['excerpt'] ) ? $post_data['excerpt'] : $post->post_excerpt,
+			);
+
+			$result = wp_update_post( $update_data );
+			if ( is_wp_error( $result ) ) {
+				return $result;
+			}
+
+			// Reset status to pending on update.
+			update_metadata( 'post', $revision_id, '_editorial_staged_status', 'pending' );
+			update_metadata( 'post', $revision_id, '_editorial_staged_author', get_current_user_id() );
+
+			// Update notes if provided.
+			if ( ! empty( $meta_data['notes'] ) ) {
+				update_metadata( 'post', $revision_id, '_editorial_staged_notes', sanitize_textarea_field( $meta_data['notes'] ) );
+			}
+
+			/** This action is documented below. */
+			do_action( 'editorial_io_staged_revision_created', $revision_id, $post_id, $post_data, $meta_data );
+
+			return $revision_id;
 		}
 
 		// Create revision data.
@@ -257,17 +283,10 @@ class Editorial_IO_Staged_Revisions {
 			return new WP_Error( 'post_not_found', __( 'Parent post not found.', 'editorial-io' ) );
 		}
 
-		// Update the parent post with staged content.
-		$updated_post = array(
-			'ID'           => $post_id,
-			'post_title'   => $revision->post_title,
-			'post_content' => $revision->post_content,
-			'post_excerpt' => $revision->post_excerpt,
-		);
-
-		$result = wp_update_post( $updated_post );
-		if ( is_wp_error( $result ) ) {
-			return $result;
+		// Restore the parent post from the staged revision using core's revision restore.
+		$result = wp_restore_post_revision( $revision->revision_id );
+		if ( ! $result || is_wp_error( $result ) ) {
+			return is_wp_error( $result ) ? $result : new WP_Error( 'publish_failed', __( 'Failed to publish staged revision.', 'editorial-io' ) );
 		}
 
 		// Clean up staged revision.
@@ -321,6 +340,10 @@ class Editorial_IO_Staged_Revisions {
 		}
 
 		update_metadata( 'post', $revision_id, '_editorial_staged_status', 'rejected' );
+
+		// Clear any scheduled publishing for this revision.
+		wp_clear_scheduled_hook( 'editorial_io_publish_staged', array( $revision_id ) );
+		delete_metadata( 'post', $revision_id, '_editorial_staged_publish_date' );
 
 		/**
 		 * Fired after a staged revision is rejected.
@@ -604,6 +627,24 @@ class Editorial_IO_Staged_Revisions {
 	public static function rest_approve_staged_revision( $request ) {
 		$revision_id = $request->get_param( 'revision_id' );
 		$result = self::approve( $revision_id );
+
+		if ( is_wp_error( $result ) ) {
+			return $result;
+		}
+
+		$revision = self::get_by_id( $revision_id );
+		return rest_ensure_response( self::format_for_response( $revision ) );
+	}
+
+	/**
+	 * REST: Reject staged revision.
+	 *
+	 * @param WP_REST_Request $request Request object.
+	 * @return WP_REST_Response|WP_Error
+	 */
+	public static function rest_reject_staged_revision( $request ) {
+		$revision_id = $request->get_param( 'revision_id' );
+		$result = self::reject( $revision_id );
 
 		if ( is_wp_error( $result ) ) {
 			return $result;

@@ -69,6 +69,19 @@ class Editorial_IO_Scheduled_Publishing {
 			return;
 		}
 
+		// Safety check: do not publish if revision has been rejected or discarded.
+		$revision = Editorial_IO_Staged_Revisions::get_by_id( $revision_id );
+		if ( ! $revision ) {
+			error_log( 'Editorial.io: Scheduled revision ' . $revision_id . ' no longer exists, skipping.' );
+			return;
+		}
+
+		$status = $revision->staged_status;
+		if ( 'rejected' === $status ) {
+			error_log( 'Editorial.io: Scheduled revision ' . $revision_id . ' was rejected, skipping publish.' );
+			return;
+		}
+
 		$result = Editorial_IO_Staged_Revisions::publish( $revision_id );
 
 		if ( is_wp_error( $result ) ) {

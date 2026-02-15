@@ -51,6 +51,7 @@ class Editorial_IO_Admin {
 		add_action( 'admin_menu', array( $this, 'add_admin_menu' ) );
 		add_action( 'admin_enqueue_scripts', array( $this, 'enqueue_admin_scripts' ) );
 		add_action( 'admin_notices', array( $this, 'show_admin_notices' ) );
+		add_action( 'wp_dashboard_setup', array( $this, 'add_dashboard_widget' ) );
 		add_filter( 'plugin_action_links_' . plugin_basename( EDITORIAL_IO_PLUGIN_DIR . 'editorial-io.php' ), array( $this, 'add_plugin_action_links' ) );
 	}
 
@@ -58,10 +59,20 @@ class Editorial_IO_Admin {
 	 * Add admin menu pages.
 	 */
 	public function add_admin_menu() {
+		// Build menu title with pending count badge.
+		$menu_title = __( 'Editorial.io', 'editorial-io' );
+		if ( $this->settings->is_feature_enabled( 'staged_revisions' ) && class_exists( 'Editorial_IO_Staged_Revisions' ) ) {
+			$pending = Editorial_IO_Staged_Revisions::get_all( array( 'status' => 'pending', 'per_page' => 1 ) );
+			$pending_count = count( Editorial_IO_Staged_Revisions::get_all( array( 'status' => 'pending', 'per_page' => 99 ) ) );
+			if ( $pending_count > 0 ) {
+				$menu_title .= sprintf( ' <span class="awaiting-mod">%d</span>', $pending_count );
+			}
+		}
+
 		// Main menu page.
 		add_menu_page(
 			__( 'Editorial.io', 'editorial-io' ),
-			__( 'Editorial.io', 'editorial-io' ),
+			$menu_title,
 			'edit_others_posts',
 			'editorial-io',
 			array( $this, 'render_dashboard_page' ),
@@ -195,6 +206,71 @@ class Editorial_IO_Admin {
 
 		array_unshift( $links, $settings_link );
 		return $links;
+	}
+
+	/**
+	 * Add dashboard widget for staged revisions queue.
+	 */
+	public function add_dashboard_widget() {
+		if ( ! $this->settings->is_feature_enabled( 'staged_revisions' ) || ! current_user_can( 'edit_others_posts' ) ) {
+			return;
+		}
+
+		wp_add_dashboard_widget(
+			'editorial_io_queue',
+			__( 'Editorial.io Queue', 'editorial-io' ),
+			array( $this, 'render_dashboard_widget' )
+		);
+	}
+
+	/**
+	 * Render dashboard widget content.
+	 */
+	public function render_dashboard_widget() {
+		if ( ! class_exists( 'Editorial_IO_Staged_Revisions' ) ) {
+			echo '<p>' . esc_html__( 'Staged revisions feature is not loaded.', 'editorial-io' ) . '</p>';
+			return;
+		}
+
+		$items = Editorial_IO_Staged_Revisions::get_recent( 5 );
+
+		if ( empty( $items ) ) {
+			echo '<p>' . esc_html__( 'No staged revisions pending.', 'editorial-io' ) . '</p>';
+			return;
+		}
+
+		$status_labels = array(
+			'pending'   => __( 'Pending', 'editorial-io' ),
+			'approved'  => __( 'Approved', 'editorial-io' ),
+			'rejected'  => __( 'Rejected', 'editorial-io' ),
+			'scheduled' => __( 'Scheduled', 'editorial-io' ),
+		);
+
+		echo '<ul>';
+		foreach ( $items as $item ) {
+			$author  = get_userdata( $item->staged_author_id );
+			$name    = $author ? $author->display_name : __( 'Unknown', 'editorial-io' );
+			$status  = $status_labels[ $item->staged_status ] ?? $item->staged_status;
+			$edit_url = get_edit_post_link( $item->post_parent );
+
+			printf(
+				'<li><a href="%s"><strong>%s</strong></a> — %s <span class="editorial-io-status editorial-io-status-%s">%s</span><br><small>%s — %s</small></li>',
+				esc_url( $edit_url ),
+				esc_html( $item->revision_title ),
+				esc_html( $name ),
+				esc_attr( $item->staged_status ),
+				esc_html( $status ),
+				esc_html( self::format_admin_date( $item->post_modified ) ),
+				esc_html( $item->notes )
+			);
+		}
+		echo '</ul>';
+
+		printf(
+			'<p class="editorial-io-widget-footer"><a href="%s">%s</a></p>',
+			esc_url( admin_url( 'admin.php?page=editorial-io-staged' ) ),
+			esc_html__( 'View all staged revisions →', 'editorial-io' )
+		);
 	}
 
 	/**

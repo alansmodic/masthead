@@ -178,6 +178,26 @@ class Editorial_IO_REST_Controller extends WP_REST_Controller {
 			)
 		);
 
+		// POST /editorial/v1/staged/{revision_id}/reject - Reject a staged revision.
+		register_rest_route(
+			$this->namespace,
+			'/staged/(?P<revision_id>[\d]+)/reject',
+			array(
+				array(
+					'methods'             => WP_REST_Server::CREATABLE,
+					'callback'            => array( $this, 'reject_staged_revision' ),
+					'permission_callback' => array( $this, 'approve_staged_revision_permissions_check' ),
+					'args'                => array(
+						'revision_id' => array(
+							'required'          => true,
+							'type'              => 'integer',
+							'sanitize_callback' => 'absint',
+						),
+					),
+				),
+			)
+		);
+
 		// DELETE /editorial/v1/staged/{revision_id} - Discard a staged revision.
 		register_rest_route(
 			$this->namespace,
@@ -844,6 +864,19 @@ class Editorial_IO_REST_Controller extends WP_REST_Controller {
 	public function approve_staged_revision( $request ) {
 		if ( class_exists( 'Editorial_IO_Staged_Revisions' ) ) {
 			return Editorial_IO_Staged_Revisions::rest_approve_staged_revision( $request );
+		}
+		return new WP_Error( 'feature_disabled', __( 'Staged revisions feature is disabled.', 'editorial-io' ), array( 'status' => 404 ) );
+	}
+
+	/**
+	 * Reject staged revision (placeholder).
+	 *
+	 * @param WP_REST_Request $request Request object.
+	 * @return WP_REST_Response|WP_Error
+	 */
+	public function reject_staged_revision( $request ) {
+		if ( class_exists( 'Editorial_IO_Staged_Revisions' ) ) {
+			return Editorial_IO_Staged_Revisions::rest_reject_staged_revision( $request );
 		}
 		return new WP_Error( 'feature_disabled', __( 'Staged revisions feature is disabled.', 'editorial-io' ), array( 'status' => 404 ) );
 	}
