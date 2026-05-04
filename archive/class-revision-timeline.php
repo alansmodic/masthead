@@ -1,8 +1,8 @@
 <?php
 /**
- * Revision Timeline feature for Editorial.io
+ * Revision Timeline feature for Masthead
  *
- * @package EditorialIO
+ * @package Masthead
  */
 
 if ( ! defined( 'ABSPATH' ) ) {
@@ -10,23 +10,23 @@ if ( ! defined( 'ABSPATH' ) ) {
 }
 
 /**
- * Class Editorial_IO_Revision_Timeline
+ * Class Masthead_Revision_Timeline
  *
  * Enhanced revision history with visual timeline and metadata.
  */
-class Editorial_IO_Revision_Timeline {
+class Masthead_Revision_Timeline {
 
 	/**
 	 * Singleton instance.
 	 *
-	 * @var Editorial_IO_Revision_Timeline|null
+	 * @var Masthead_Revision_Timeline|null
 	 */
 	private static $instance = null;
 
 	/**
 	 * Get singleton instance.
 	 *
-	 * @return Editorial_IO_Revision_Timeline
+	 * @return Masthead_Revision_Timeline
 	 */
 	public static function get_instance() {
 		if ( null === self::$instance ) {
@@ -112,7 +112,7 @@ class Editorial_IO_Revision_Timeline {
 			'date_relative' => human_time_diff( strtotime( $revision->post_modified_gmt ), time() ),
 			'author'        => array(
 				'id'     => $revision->post_author,
-				'name'   => $author ? $author->display_name : __( 'Unknown', 'editorial-io' ),
+				'name'   => $author ? $author->display_name : __( 'Unknown', 'masthead' ),
 				'avatar' => get_avatar_url( $revision->post_author, array( 'size' => 48 ) ),
 			),
 			'type'          => $is_staged ? 'staged' : ( $is_autosave ? 'autosave' : 'manual' ),
@@ -193,7 +193,7 @@ class Editorial_IO_Revision_Timeline {
 				'date_relative' => human_time_diff( strtotime( $revision->post_modified_gmt ), time() ),
 				'author'        => array(
 					'id'     => $revision->post_author,
-					'name'   => $author ? $author->display_name : __( 'Unknown', 'editorial-io' ),
+					'name'   => $author ? $author->display_name : __( 'Unknown', 'masthead' ),
 					'avatar' => get_avatar_url( $revision->post_author, array( 'size' => 32 ) ),
 				),
 				'type'          => $is_autosave ? 'autosave' : 'manual',
@@ -215,19 +215,19 @@ class Editorial_IO_Revision_Timeline {
 		$revision = get_post( $revision_id );
 
 		if ( ! $revision || 'revision' !== $revision->post_type ) {
-			return new WP_Error( 'not_found', __( 'Revision not found.', 'editorial-io' ), array( 'status' => 404 ) );
+			return new WP_Error( 'not_found', __( 'Revision not found.', 'masthead' ), array( 'status' => 404 ) );
 		}
 
 		$parent_id = $revision->post_parent;
 		$restored = wp_restore_post_revision( $revision_id );
 
 		if ( ! $restored ) {
-			return new WP_Error( 'restore_failed', __( 'Failed to restore revision.', 'editorial-io' ), array( 'status' => 500 ) );
+			return new WP_Error( 'restore_failed', __( 'Failed to restore revision.', 'masthead' ), array( 'status' => 500 ) );
 		}
 
 		return rest_ensure_response( array(
 			'success'  => true,
-			'message'  => __( 'Revision restored successfully.', 'editorial-io' ),
+			'message'  => __( 'Revision restored successfully.', 'masthead' ),
 			'post_id'  => $parent_id,
 			'edit_url' => get_edit_post_link( $parent_id, 'raw' ),
 		) );

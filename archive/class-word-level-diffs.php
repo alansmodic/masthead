@@ -1,8 +1,8 @@
 <?php
 /**
- * Word-level Diffs feature for Editorial.io
+ * Word-level Diffs feature for Masthead
  *
- * @package EditorialIO
+ * @package Masthead
  */
 
 if ( ! defined( 'ABSPATH' ) ) {
@@ -10,23 +10,28 @@ if ( ! defined( 'ABSPATH' ) ) {
 }
 
 /**
- * Class Editorial_IO_Word_Level_Diffs
+ * Class Masthead_Word_Level_Diffs
  *
  * Generates detailed word-by-word diffs between revisions.
  */
-class Editorial_IO_Word_Level_Diffs {
+class Masthead_Word_Level_Diffs {
+	/**
+	 * Max LCS matrix cells to compute to avoid runaway memory/CPU.
+	 */
+	const MAX_DIFF_CELLS = 4000000;
+
 
 	/**
 	 * Singleton instance.
 	 *
-	 * @var Editorial_IO_Word_Level_Diffs|null
+	 * @var Masthead_Word_Level_Diffs|null
 	 */
 	private static $instance = null;
 
 	/**
 	 * Get singleton instance.
 	 *
-	 * @return Editorial_IO_Word_Level_Diffs
+	 * @return Masthead_Word_Level_Diffs
 	 */
 	public static function get_instance() {
 		if ( null === self::$instance ) {
@@ -120,7 +125,7 @@ class Editorial_IO_Word_Level_Diffs {
 				'date'          => $from_post->post_modified,
 				'date_relative' => human_time_diff( strtotime( $from_post->post_modified_gmt ), time() ),
 				'author'        => array(
-					'name'   => $from_author ? $from_author->display_name : __( 'Unknown', 'editorial-io' ),
+					'name'   => $from_author ? $from_author->display_name : __( 'Unknown', 'masthead' ),
 					'avatar' => get_avatar_url( $from_post->post_author, array( 'size' => 48 ) ),
 				),
 				'is_current'    => $from_post->post_type !== 'revision',
@@ -130,7 +135,7 @@ class Editorial_IO_Word_Level_Diffs {
 				'date'          => $to_post->post_modified,
 				'date_relative' => human_time_diff( strtotime( $to_post->post_modified_gmt ), time() ),
 				'author'        => array(
-					'name'   => $to_author ? $to_author->display_name : __( 'Unknown', 'editorial-io' ),
+					'name'   => $to_author ? $to_author->display_name : __( 'Unknown', 'masthead' ),
 					'avatar' => get_avatar_url( $to_post->post_author, array( 'size' => 48 ) ),
 				),
 				'is_current'    => false,
@@ -161,6 +166,11 @@ class Editorial_IO_Word_Level_Diffs {
 		// Split into words for word-level diffing.
 		$from_words = self::split_into_words( $from );
 		$to_words = self::split_into_words( $to );
+
+		// Guard against very large diffs (quadratic behavior).
+		if ( self::is_diff_too_large( count( $from_words ), count( $to_words ) ) ) {
+			return self::get_large_diff( $from, $to );
+		}
 
 		// Calculate diff using dynamic programming (similar to git diff).
 		$diff_result = self::calculate_word_diff( $from_words, $to_words );
@@ -307,6 +317,51 @@ class Editorial_IO_Word_Level_Diffs {
 	}
 
 	/**
+	 * Determine whether diff computation is too large.
+	 *
+	 * @param int $from_len Word count for original.
+	 * @param int $to_len   Word count for new.
+	 * @return bool
+	 */
+	private static function is_diff_too_large( $from_len, $to_len ) {
+		if ( 0 === $from_len || 0 === $to_len ) {
+			return false;
+		}
+
+		$cells = (int) $from_len * (int) $to_len;
+		return $cells > self::MAX_DIFF_CELLS;
+	}
+
+	/**
+	 * Fallback diff response for large content.
+	 *
+	 * @param string $from Original text.
+	 * @param string $to   New text.
+	 * @return array
+	 */
+	private static function get_large_diff( $from, $to ) {
+		$notice = '<em>' . __( 'Content too large for word-level diff. Use text view or compare smaller sections.', 'masthead' ) . '</em>';
+
+		return array(
+			'from'           => $from,
+			'to'             => $to,
+			'diff_html'      => $notice,
+			'diff_inline'    => $notice,
+			'diff_split'     => array(
+				'left'  => $notice,
+				'right' => $notice,
+			),
+			'has_changes'    => true,
+			'stats'          => array(
+				'additions' => 0,
+				'deletions' => 0,
+				'changes'   => 0,
+			),
+			'too_large'      => true,
+		);
+	}
+
+	/**
 	 * Render diff as HTML for inline view.
 	 *
 	 * @param array $diff_result Diff result from calculate_word_diff.
@@ -323,10 +378,10 @@ class Editorial_IO_Word_Level_Diffs {
 					$html .= $word . ' ';
 					break;
 				case 'insert':
-					$html .= '<ins class="editorial-io-diff-added">' . $word . '</ins> ';
+					$html .= '<ins class="masthead-diff-added">' . $word . '</ins> ';
 					break;
 				case 'delete':
-					$html .= '<del class="editorial-io-diff-removed">' . $word . '</del> ';
+					$html .= '<del class="masthead-diff-removed">' . $word . '</del> ';
 					break;
 			}
 		}
@@ -363,10 +418,10 @@ class Editorial_IO_Word_Level_Diffs {
 					$right .= $word . ' ';
 					break;
 				case 'insert':
-					$right .= '<ins class="editorial-io-diff-added">' . $word . '</ins> ';
+					$right .= '<ins class="masthead-diff-added">' . $word . '</ins> ';
 					break;
 				case 'delete':
-					$left .= '<del class="editorial-io-diff-removed">' . $word . '</del> ';
+					$left .= '<del class="masthead-diff-removed">' . $word . '</del> ';
 					break;
 			}
 		}
@@ -564,8 +619,8 @@ class Editorial_IO_Word_Level_Diffs {
 
 		// This is a simplified character-level diff.
 		// For production use, consider implementing a more sophisticated HTML-aware diff.
-		return '<div class="editorial-io-html-diff-notice">' 
-			. __( 'HTML content changed. Use text view for detailed comparison.', 'editorial-io' )
+		return '<div class="masthead-html-diff-notice">' 
+			. __( 'HTML content changed. Use text view for detailed comparison.', 'masthead' )
 			. '</div>';
 	}
 
@@ -578,11 +633,11 @@ class Editorial_IO_Word_Level_Diffs {
 		return array(
 			'from'           => '',
 			'to'             => '',
-			'diff_html'      => '<em>' . __( 'No content', 'editorial-io' ) . '</em>',
-			'diff_inline'    => '<em>' . __( 'No content', 'editorial-io' ) . '</em>',
+			'diff_html'      => '<em>' . __( 'No content', 'masthead' ) . '</em>',
+			'diff_inline'    => '<em>' . __( 'No content', 'masthead' ) . '</em>',
 			'diff_split'     => array(
-				'left'  => '<em>' . __( 'No content', 'editorial-io' ) . '</em>',
-				'right' => '<em>' . __( 'No content', 'editorial-io' ) . '</em>',
+				'left'  => '<em>' . __( 'No content', 'masthead' ) . '</em>',
+				'right' => '<em>' . __( 'No content', 'masthead' ) . '</em>',
 			),
 			'has_changes'    => false,
 			'stats'          => array(
@@ -600,7 +655,7 @@ class Editorial_IO_Word_Level_Diffs {
 	 * @return array
 	 */
 	private static function get_no_change_diff( $content ) {
-		$display_content = empty( $content ) ? '<em>' . __( 'No content', 'editorial-io' ) . '</em>' : esc_html( $content );
+		$display_content = empty( $content ) ? '<em>' . __( 'No content', 'masthead' ) . '</em>' : esc_html( $content );
 		
 		return array(
 			'from'           => $content,

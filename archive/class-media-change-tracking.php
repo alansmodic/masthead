@@ -1,8 +1,8 @@
 <?php
 /**
- * Media Change Tracking feature for Editorial.io
+ * Media Change Tracking feature for Masthead
  *
- * @package EditorialIO
+ * @package Masthead
  */
 
 if ( ! defined( 'ABSPATH' ) ) {
@@ -10,23 +10,23 @@ if ( ! defined( 'ABSPATH' ) ) {
 }
 
 /**
- * Class Editorial_IO_Media_Change_Tracking
+ * Class Masthead_Media_Change_Tracking
  *
  * Tracks and highlights changes to images, videos, and other media between revisions.
  */
-class Editorial_IO_Media_Change_Tracking {
+class Masthead_Media_Change_Tracking {
 
 	/**
 	 * Singleton instance.
 	 *
-	 * @var Editorial_IO_Media_Change_Tracking|null
+	 * @var Masthead_Media_Change_Tracking|null
 	 */
 	private static $instance = null;
 
 	/**
 	 * Get singleton instance.
 	 *
-	 * @return Editorial_IO_Media_Change_Tracking
+	 * @return Masthead_Media_Change_Tracking
 	 */
 	public static function get_instance() {
 		if ( null === self::$instance ) {
@@ -323,7 +323,7 @@ class Editorial_IO_Media_Change_Tracking {
 				$blocks[] = array(
 					'type'        => 'gallery',
 					'src'         => '',
-					'name'        => sprintf( __( 'Gallery (%d images)', 'editorial-io' ), $image_count ),
+					'name'        => sprintf( __( 'Gallery (%d images)', 'masthead' ), $image_count ),
 					'image_count' => $image_count,
 					'thumbnail'   => null,
 					'full_tag'    => $gallery,

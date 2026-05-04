@@ -1,0 +1,16 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<phpunit
+	bootstrap="bootstrap.php"
+	colors="true"
+	backupGlobals="false"
+	backupStaticAttributes="false"
+	convertErrorsToExceptions="true"
+	convertNoticesToExceptions="true"
+	convertWarningsToExceptions="true"
+>
+	<testsuites>
+		<testsuite name="Editorial.io">
+			<directory>./</directory>
+		</testsuite>
+	</testsuites>
+</phpunit>

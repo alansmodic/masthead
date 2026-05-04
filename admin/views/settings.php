@@ -1,534 +1,300 @@
-<?php
-/**
- * Settings view for Editorial.io
- *
- * @package EditorialIO
- * @var array $enabled_features
- * @var array $available_features
- * @var array $checklist_items
- * @var array $general_options
- */
+<?php defined( 'ABSPATH' ) || exit; ?>
 
-if ( ! defined( 'ABSPATH' ) ) {
-	exit;
-}
-?>
+<div class="wrap masthead-settings">
+	<h1>✍️ <?php esc_html_e( 'Masthead Settings', 'masthead' ); ?></h1>
 
-<div class="wrap editorial-io-settings">
-	<h1 class="wp-heading-inline">
-		<?php esc_html_e( 'Editorial.io Settings', 'editorial-io' ); ?>
-	</h1>
+	<form id="masthead-settings-form">
 
-	<div class="editorial-io-settings-tabs">
-		<nav class="nav-tab-wrapper">
-			<a href="#features" class="nav-tab nav-tab-active" data-tab="features">
-				<?php esc_html_e( 'Features', 'editorial-io' ); ?>
-			</a>
-			<a href="#checklist" class="nav-tab" data-tab="checklist">
-				<?php esc_html_e( 'Publication Checklist', 'editorial-io' ); ?>
-			</a>
-			<a href="#general" class="nav-tab" data-tab="general">
-				<?php esc_html_e( 'General Settings', 'editorial-io' ); ?>
-			</a>
-		</nav>
-
-		<!-- Features Tab -->
-		<div id="features-tab" class="tab-content active">
-			<div class="editorial-io-card">
-				<h2><?php esc_html_e( 'Feature Management', 'editorial-io' ); ?></h2>
-				<p class="description">
-					<?php esc_html_e( 'Enable or disable specific Editorial.io features. Some features depend on others and will be automatically disabled if their dependencies are not met.', 'editorial-io' ); ?>
-				</p>
-
-				<form id="features-form">
-					<div class="features-grid">
-						<?php foreach ( $available_features as $key => $feature ) : ?>
-						<div class="feature-item" data-feature="<?php echo esc_attr( $key ); ?>">
-							<div class="feature-toggle">
-								<label class="toggle-switch">
-									<input type="checkbox" 
-										   name="features[<?php echo esc_attr( $key ); ?>]" 
-										   value="1" 
-										   <?php checked( $enabled_features[ $key ] ?? false ); ?>
-										   <?php if ( ! empty( $feature['requires'] ) ) : ?>
-										   data-requires="<?php echo esc_attr( implode( ',', $feature['requires'] ) ); ?>"
-										   <?php endif; ?>
-									>
-									<span class="toggle-slider"></span>
-								</label>
-							</div>
-							<div class="feature-info">
-								<h3 class="feature-title"><?php echo esc_html( $feature['label'] ); ?></h3>
-								<p class="feature-description"><?php echo esc_html( $feature['description'] ); ?></p>
-								
-								<?php if ( ! empty( $feature['requires'] ) ) : ?>
-								<div class="feature-dependencies">
-									<small>
-										<?php 
-										/* translators: %s: comma-separated list of required features */
-										printf( esc_html__( 'Requires: %s', 'editorial-io' ), 
-											esc_html( implode( ', ', array_map( function( $req ) use ( $available_features ) {
-												return $available_features[ $req ]['label'] ?? $req;
-											}, $feature['requires'] ) ) )
-										); 
-										?>
-									</small>
-								</div>
-								<?php endif; ?>
-							</div>
-						</div>
-						<?php endforeach; ?>
-					</div>
-
-					<div class="settings-actions">
-						<button type="submit" class="button button-primary">
-							<?php esc_html_e( 'Save Features', 'editorial-io' ); ?>
-						</button>
-						<button type="button" id="reset-features" class="button button-secondary">
-							<?php esc_html_e( 'Reset to Defaults', 'editorial-io' ); ?>
-						</button>
-						<span class="settings-status"></span>
-					</div>
-				</form>
-			</div>
+		<!-- Suite Modules -->
+		<div class="masthead-card">
+			<h2><?php esc_html_e( 'Suite Modules', 'masthead' ); ?></h2>
+			<p class="description"><?php esc_html_e( 'Each Masthead module is a standalone plugin. Install and activate them independently, or let Masthead handle it.', 'masthead' ); ?></p>
+			<table class="form-table">
+				<tbody>
+				<?php foreach ( $modules as $id => $module ) : ?>
+				<tr>
+					<th><?php echo esc_html( $module['label'] ); ?></th>
+					<td>
+						<?php if ( $module['active'] ) : ?>
+							<span class="masthead-badge masthead-badge-active">✓ Active</span>
+						<?php elseif ( $module['installed'] ) : ?>
+							<span class="masthead-badge masthead-badge-installed">Installed</span>
+							<button type="button"
+								class="button button-primary button-small masthead-activate-btn"
+								data-module="<?php echo esc_attr( $id ); ?>"
+							><?php esc_html_e( 'Activate', 'masthead' ); ?></button>
+						<?php else : ?>
+							<span class="masthead-badge masthead-badge-missing">Not installed</span>
+							<button type="button"
+								class="button button-primary button-small masthead-install-btn"
+								data-module="<?php echo esc_attr( $id ); ?>"
+							><?php esc_html_e( 'Install', 'masthead' ); ?></button>
+						<?php endif; ?>
+						<p class="description"><?php echo esc_html( $module['description'] ); ?></p>
+					</td>
+				</tr>
+				<?php endforeach; ?>
+				</tbody>
+			</table>
 		</div>
 
-		<!-- Checklist Tab -->
-		<div id="checklist-tab" class="tab-content">
-			<div class="editorial-io-card">
-				<h2><?php esc_html_e( 'Publication Checklist', 'editorial-io' ); ?></h2>
-				<p class="description">
-					<?php esc_html_e( 'Configure the checklist that appears when updating published posts. Required items must be checked before publishing immediately.', 'editorial-io' ); ?>
-				</p>
-
-				<form id="checklist-form">
-					<div id="checklist-items" class="checklist-editor">
-						<?php foreach ( $checklist_items as $index => $item ) : ?>
-						<div class="checklist-item" data-index="<?php echo esc_attr( $index ); ?>">
-							<span class="checklist-handle dashicons dashicons-menu"></span>
-							<input type="text" 
-								   class="checklist-label regular-text" 
-								   value="<?php echo esc_attr( $item['label'] ); ?>" 
-								   placeholder="<?php esc_attr_e( 'Checklist item text...', 'editorial-io' ); ?>">
-							<label class="checklist-required">
-								<input type="checkbox" <?php checked( $item['required'] ); ?>>
-								<?php esc_html_e( 'Required', 'editorial-io' ); ?>
-							</label>
-							<button type="button" class="button checklist-delete" title="<?php esc_attr_e( 'Delete', 'editorial-io' ); ?>">
-								<span class="dashicons dashicons-trash"></span>
-							</button>
-						</div>
-						<?php endforeach; ?>
-					</div>
-
-					<p>
-						<button type="button" id="add-checklist-item" class="button">
-							<span class="dashicons dashicons-plus-alt2"></span>
-							<?php esc_html_e( 'Add Item', 'editorial-io' ); ?>
-						</button>
-					</p>
-
-					<div class="settings-actions">
-						<button type="submit" class="button button-primary">
-							<?php esc_html_e( 'Save Checklist', 'editorial-io' ); ?>
-						</button>
-						<span class="settings-status"></span>
-					</div>
-				</form>
-			</div>
+		<!-- Cross-Plugin Integrations -->
+		<div class="masthead-card">
+			<h2><?php esc_html_e( 'Cross-Plugin Integrations', 'masthead' ); ?></h2>
+			<p class="description"><?php esc_html_e( 'These features activate automatically when the required modules are both installed and active.', 'masthead' ); ?></p>
+			<table class="form-table">
+				<tbody>
+				<?php foreach ( $avail_integ as $key => $setting ) :
+					$requires_labels = array_map( fn( $id ) => $modules[ $id ]['label'] ?? $id, $setting['requires'] );
+					$all_active = array_reduce( $setting['requires'], fn( $carry, $id ) => $carry && ( $modules[ $id ]['active'] ?? false ), true );
+				?>
+				<tr class="<?php echo $all_active ? '' : 'masthead-integration-inactive'; ?>">
+					<th scope="row">
+						<label for="integ_<?php echo esc_attr( $key ); ?>">
+							<?php echo esc_html( $setting['label'] ); ?>
+						</label>
+					</th>
+					<td>
+						<label>
+							<input type="checkbox"
+								id="integ_<?php echo esc_attr( $key ); ?>"
+								name="integrations[<?php echo esc_attr( $key ); ?>]"
+								value="1"
+								<?php checked( ! empty( $integrations[ $key ] ) ); ?>
+								<?php disabled( ! $all_active ); ?>
+							>
+							<?php echo esc_html( $setting['description'] ); ?>
+						</label>
+						<?php if ( ! $all_active ) : ?>
+						<p class="description masthead-requires-notice">
+							<?php printf(
+								/* translators: %s: list of required modules */
+								esc_html__( 'Requires: %s', 'masthead' ),
+								esc_html( implode( ' + ', $requires_labels ) )
+							); ?>
+						</p>
+						<?php endif; ?>
+					</td>
+				</tr>
+				<?php endforeach; ?>
+				</tbody>
+			</table>
+			<p class="submit">
+				<button type="button" class="button button-primary" data-masthead-save="integrations">
+					<?php esc_html_e( 'Save Integrations', 'masthead' ); ?>
+				</button>
+			</p>
 		</div>
 
-		<!-- General Tab -->
-		<div id="general-tab" class="tab-content">
-			<div class="editorial-io-card">
-				<h2><?php esc_html_e( 'General Settings', 'editorial-io' ); ?></h2>
-
-				<form id="general-form">
-					<table class="form-table">
-						<tr>
-							<th scope="row">
-								<label for="timeline-per-page"><?php esc_html_e( 'Revisions Per Page', 'editorial-io' ); ?></label>
-							</th>
-							<td>
-								<input type="number" 
-									   id="timeline-per-page" 
-									   name="general[timeline_per_page]" 
-									   value="<?php echo esc_attr( $general_options['timeline_per_page'] ?? 50 ); ?>" 
-									   min="10" 
-									   max="100" 
-									   class="small-text">
-								<p class="description">
-									<?php esc_html_e( 'Number of revisions to show per page in the timeline view.', 'editorial-io' ); ?>
-								</p>
-							</td>
-						</tr>
-						<tr>
-							<th scope="row">
-								<label for="timeline-show-autosaves"><?php esc_html_e( 'Show Autosaves', 'editorial-io' ); ?></label>
-							</th>
-							<td>
-								<label>
-									<input type="checkbox" 
-										   id="timeline-show-autosaves" 
-										   name="general[timeline_show_autosaves]" 
-										   value="1" 
-										   <?php checked( $general_options['timeline_show_autosaves'] ?? false ); ?>>
-									<?php esc_html_e( 'Include autosave revisions in timeline by default', 'editorial-io' ); ?>
-								</label>
-							</td>
-						</tr>
-						<tr>
-							<th scope="row">
-								<label for="diff-context-lines"><?php esc_html_e( 'Diff Context Lines', 'editorial-io' ); ?></label>
-							</th>
-							<td>
-								<input type="number" 
-									   id="diff-context-lines" 
-									   name="general[diff_context_lines]" 
-									   value="<?php echo esc_attr( $general_options['diff_context_lines'] ?? 3 ); ?>" 
-									   min="1" 
-									   max="10" 
-									   class="small-text">
-								<p class="description">
-									<?php esc_html_e( 'Number of context lines to show around changes in diffs.', 'editorial-io' ); ?>
-								</p>
-							</td>
-						</tr>
-						<tr>
-							<th scope="row">
-								<label for="cleanup-old-revisions"><?php esc_html_e( 'Automatic Cleanup', 'editorial-io' ); ?></label>
-							</th>
-							<td>
-								<label>
-									<input type="checkbox" 
-										   id="cleanup-old-revisions" 
-										   name="general[cleanup_old_revisions]" 
-										   value="1" 
-										   <?php checked( $general_options['cleanup_old_revisions'] ?? false ); ?>>
-									<?php esc_html_e( 'Automatically clean up old staged revisions', 'editorial-io' ); ?>
-								</label>
-							</td>
-						</tr>
-						<tr class="cleanup-days-row" <?php echo empty( $general_options['cleanup_old_revisions'] ) ? 'style="display: none;"' : ''; ?>>
-							<th scope="row">
-								<label for="cleanup-days"><?php esc_html_e( 'Cleanup After Days', 'editorial-io' ); ?></label>
-							</th>
-							<td>
-								<input type="number" 
-									   id="cleanup-days" 
-									   name="general[cleanup_days]" 
-									   value="<?php echo esc_attr( $general_options['cleanup_days'] ?? 30 ); ?>" 
-									   min="7" 
-									   max="365" 
-									   class="small-text">
-								<p class="description">
-									<?php esc_html_e( 'Remove staged revisions older than this many days (only pending/rejected revisions).', 'editorial-io' ); ?>
-								</p>
-							</td>
-						</tr>
-					</table>
-
-					<div class="settings-actions">
-						<button type="submit" class="button button-primary">
-							<?php esc_html_e( 'Save General Settings', 'editorial-io' ); ?>
-						</button>
-						<span class="settings-status"></span>
-					</div>
-				</form>
-			</div>
+		<!-- Masthead Features -->
+		<div class="masthead-card">
+			<h2><?php esc_html_e( 'Features', 'masthead' ); ?></h2>
+			<p class="description"><?php esc_html_e( 'Core Masthead features. These are built into the plugin and don\'t require additional modules.', 'masthead' ); ?></p>
+			<table class="form-table">
+				<tbody>
+				<?php foreach ( $avail_features as $key => $feature ) : ?>
+				<tr>
+					<th scope="row">
+						<label for="feature_<?php echo esc_attr( $key ); ?>">
+							<?php echo esc_html( $feature['label'] ); ?>
+						</label>
+					</th>
+					<td>
+						<label>
+							<input type="checkbox"
+								id="feature_<?php echo esc_attr( $key ); ?>"
+								name="features[<?php echo esc_attr( $key ); ?>]"
+								value="1"
+								<?php checked( ! empty( $features[ $key ] ) ); ?>
+							>
+							<?php echo esc_html( $feature['description'] ); ?>
+						</label>
+						<?php if ( ! empty( $feature['requires'] ) ) : ?>
+						<p class="description"><?php printf( esc_html__( 'Requires: %s', 'masthead' ), esc_html( implode( ', ', $feature['requires'] ) ) ); ?></p>
+						<?php endif; ?>
+					</td>
+				</tr>
+				<?php endforeach; ?>
+				</tbody>
+			</table>
+			<p class="submit">
+				<button type="button" class="button button-primary" data-masthead-save="features">
+					<?php esc_html_e( 'Save Features', 'masthead' ); ?>
+				</button>
+			</p>
 		</div>
-	</div>
+
+		<!-- Publication Checklist -->
+		<?php if ( ! empty( $features['publication_checklist'] ) ) : ?>
+		<div class="masthead-card">
+			<h2><?php esc_html_e( 'Publication Checklist', 'masthead' ); ?></h2>
+			<p class="description"><?php esc_html_e( 'Authors must complete this checklist before publishing. Drag to reorder.', 'masthead' ); ?></p>
+
+			<ul id="masthead-checklist-items" class="masthead-sortable">
+				<?php foreach ( $checklist_items as $i => $item ) : ?>
+				<li class="masthead-checklist-item" data-index="<?php echo (int) $i; ?>">
+					<span class="dashicons dashicons-menu masthead-drag-handle"></span>
+					<input type="text" name="items[<?php echo (int) $i; ?>][label]" value="<?php echo esc_attr( $item['label'] ); ?>" class="regular-text">
+					<label>
+						<input type="checkbox" name="items[<?php echo (int) $i; ?>][required]" value="1" <?php checked( ! empty( $item['required'] ) ); ?>>
+						<?php esc_html_e( 'Required', 'masthead' ); ?>
+					</label>
+					<button type="button" class="button-link masthead-remove-item" aria-label="Remove">✕</button>
+				</li>
+				<?php endforeach; ?>
+			</ul>
+
+			<p>
+				<button type="button" class="button" id="masthead-add-checklist-item">
+					+ <?php esc_html_e( 'Add Item', 'masthead' ); ?>
+				</button>
+			</p>
+			<p class="submit">
+				<button type="button" class="button button-primary" data-masthead-save="checklist">
+					<?php esc_html_e( 'Save Checklist', 'masthead' ); ?>
+				</button>
+			</p>
+		</div>
+		<?php endif; ?>
+
+	</form>
 </div>
 
 <style>
-.editorial-io-settings {
-	max-width: 1200px;
-}
-
-.editorial-io-settings-tabs {
-	margin-top: 20px;
-}
-
-.nav-tab-wrapper {
-	margin-bottom: 0;
-	border-bottom: 1px solid #c3c4c7;
-}
-
-.tab-content {
-	display: none;
-	padding-top: 20px;
-}
-
-.tab-content.active {
-	display: block;
-}
-
-.editorial-io-card {
-	background: #fff;
-	border: 1px solid #c3c4c7;
-	border-radius: 4px;
-	padding: 20px;
-	box-shadow: 0 1px 1px rgba(0,0,0,.04);
-}
-
-.editorial-io-card h2 {
-	margin: 0 0 15px 0;
-	font-size: 18px;
-}
-
-.features-grid {
-	display: grid;
-	grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
-	grid-gap: 20px;
-	margin: 20px 0;
-}
-
-.feature-item {
-	border: 1px solid #ddd;
-	border-radius: 4px;
-	padding: 20px;
-	display: flex;
-	align-items: flex-start;
-	gap: 15px;
-}
-
-.feature-item.disabled {
-	opacity: 0.6;
-}
-
-.toggle-switch {
-	position: relative;
-	display: inline-block;
-	width: 48px;
-	height: 24px;
-	flex-shrink: 0;
-}
-
-.toggle-switch input {
-	opacity: 0;
-	width: 0;
-	height: 0;
-}
-
-.toggle-slider {
-	position: absolute;
-	cursor: pointer;
-	top: 0;
-	left: 0;
-	right: 0;
-	bottom: 0;
-	background-color: #ccc;
-	transition: .4s;
-	border-radius: 24px;
-}
-
-.toggle-slider:before {
-	position: absolute;
-	content: "";
-	height: 18px;
-	width: 18px;
-	left: 3px;
-	bottom: 3px;
-	background-color: white;
-	transition: .4s;
-	border-radius: 50%;
-}
-
-input:checked + .toggle-slider {
-	background-color: #2271b1;
-}
-
-input:checked + .toggle-slider:before {
-	transform: translateX(24px);
-}
-
-.feature-info {
-	flex: 1;
-	min-width: 0;
-}
-
-.feature-title {
-	margin: 0 0 8px 0;
-	font-size: 16px;
-	font-weight: 600;
-}
-
-.feature-description {
-	margin: 0 0 8px 0;
-	color: #646970;
-	font-size: 14px;
-	line-height: 1.4;
-}
-
-.feature-dependencies {
-	color: #d63638;
-	font-size: 12px;
-}
-
-.checklist-editor {
-	max-width: 600px;
-	margin: 20px 0;
-}
-
-.checklist-item {
-	display: flex;
-	align-items: center;
-	gap: 8px;
-	padding: 8px;
-	margin-bottom: 4px;
-	background: #fff;
-	border: 1px solid #ddd;
-	border-radius: 4px;
-}
-
-.checklist-handle {
-	cursor: move;
-	color: #999;
-}
-
-.checklist-label {
-	flex: 1;
-}
-
-.checklist-required {
-	white-space: nowrap;
-	font-size: 12px;
-}
-
-.checklist-delete {
-	padding: 4px 8px;
-	border: none;
-	background: transparent;
-	color: #d63638;
-	cursor: pointer;
-}
-
-.checklist-delete:hover {
-	background: #f0f0f1;
-}
-
-.checklist-delete .dashicons {
-	width: 16px;
-	height: 16px;
-	font-size: 16px;
-}
-
-.settings-actions {
-	margin-top: 20px;
-	padding-top: 20px;
-	border-top: 1px solid #f0f0f1;
-}
-
-.settings-status {
-	margin-left: 10px;
-	font-weight: 600;
-}
-
-.settings-status.success {
-	color: #00a32a;
-}
-
-.settings-status.error {
-	color: #d63638;
-}
-
-.settings-status.warning {
-	color: #f0ad4e;
-}
-
-#add-checklist-item .dashicons {
-	vertical-align: middle;
-	margin-top: -2px;
-}
-
-.cleanup-days-row {
-	transition: opacity 0.3s ease;
-}
-
-@media (max-width: 782px) {
-	.features-grid {
-		grid-template-columns: 1fr;
-	}
-	
-	.feature-item {
-		flex-direction: column;
-		align-items: stretch;
-		text-align: center;
-	}
-	
-	.toggle-switch {
-		align-self: center;
-		margin-bottom: 10px;
-	}
-}
+.masthead-settings h1 { margin-bottom: 20px; }
+.masthead-card { background: #fff; border: 1px solid #e0e0e0; border-radius: 6px; padding: 20px 24px; margin-bottom: 20px; }
+.masthead-card h2 { margin-top: 0; padding-bottom: 10px; border-bottom: 1px solid #f0f0f0; }
+.masthead-badge { display: inline-block; font-size: 12px; padding: 2px 8px; border-radius: 10px; font-weight: 600; margin-right: 8px; }
+.masthead-badge-active { background: #d7f0d7; color: #1a7a1a; }
+.masthead-badge-installed { background: #fff3cd; color: #856404; }
+.masthead-badge-missing { background: #f0f0f0; color: #666; }
+.masthead-integration-inactive { opacity: .6; }
+.masthead-requires-notice { color: #999; margin-top: 4px; }
+.masthead-sortable { list-style: none; margin: 0; padding: 0; }
+.masthead-checklist-item { display: flex; align-items: center; gap: 8px; padding: 8px 0; border-bottom: 1px solid #f5f5f5; }
+.masthead-drag-handle { cursor: grab; color: #aaa; }
+.masthead-remove-item { color: #cc0000 !important; text-decoration: none; font-size: 16px; }
 </style>
 
 <script>
-document.addEventListener('DOMContentLoaded', function() {
-	// Tab switching
-	document.querySelectorAll('.nav-tab').forEach(tab => {
-		tab.addEventListener('click', function(e) {
-			e.preventDefault();
-			
-			// Remove active class from all tabs and content
-			document.querySelectorAll('.nav-tab').forEach(t => t.classList.remove('nav-tab-active'));
-			document.querySelectorAll('.tab-content').forEach(c => c.classList.remove('active'));
-			
-			// Add active class to clicked tab
-			this.classList.add('nav-tab-active');
-			
-			// Show corresponding content
-			const targetTab = this.getAttribute('data-tab');
-			document.getElementById(targetTab + '-tab').classList.add('active');
-		});
+jQuery(function($) {
+	// Sortable checklist.
+	$('#masthead-checklist-items').sortable({ handle: '.masthead-drag-handle' });
+
+	// Add checklist item.
+	$('#masthead-add-checklist-item').on('click', function() {
+		const idx = $('#masthead-checklist-items li').length;
+		$('#masthead-checklist-items').append(`
+			<li class="masthead-checklist-item" data-index="${idx}">
+				<span class="dashicons dashicons-menu masthead-drag-handle"></span>
+				<input type="text" name="items[${idx}][label]" value="" class="regular-text" placeholder="Checklist item…">
+				<label><input type="checkbox" name="items[${idx}][required]" value="1"> Required</label>
+				<button type="button" class="button-link masthead-remove-item" aria-label="Remove">✕</button>
+			</li>
+		`);
 	});
-	
-	// Feature dependency handling
-	function checkFeatureDependencies() {
-		const featureToggles = document.querySelectorAll('input[name^="features["]');
-		
-		featureToggles.forEach(toggle => {
-			const requires = toggle.getAttribute('data-requires');
-			if (requires) {
-				const requiredFeatures = requires.split(',');
-				const featureItem = toggle.closest('.feature-item');
-				let allRequiredEnabled = true;
-				
-				requiredFeatures.forEach(requiredFeature => {
-					const requiredToggle = document.querySelector(`input[name="features[${requiredFeature}]"]`);
-					if (!requiredToggle || !requiredToggle.checked) {
-						allRequiredEnabled = false;
-					}
+
+	// Remove item.
+	$(document).on('click', '.masthead-remove-item', function() {
+		$(this).closest('li').remove();
+	});
+
+	// Save buttons.
+	$('[data-masthead-save]').on('click', function() {
+		const $btn = $(this);
+		const section = $btn.data('masthead-save');
+		const $card = $btn.closest('.masthead-card');
+
+		$btn.text(mastheadAdmin.strings.saving).prop('disabled', true);
+
+		const data = { action: 'masthead_save_settings', nonce: mastheadAdmin.nonce, section };
+
+		if (section === 'features') {
+			data.features = {};
+			$card.find('input[type=checkbox]').each(function() {
+				const name = $(this).attr('name').match(/features\[(.+)\]/)?.[1];
+				if (name) data.features[name] = this.checked ? 1 : 0;
+			});
+		} else if (section === 'integrations') {
+			data.integrations = {};
+			$card.find('input[type=checkbox]:not(:disabled)').each(function() {
+				const name = $(this).attr('name').match(/integrations\[(.+)\]/)?.[1];
+				if (name) data.integrations[name] = this.checked ? 1 : 0;
+			});
+		} else if (section === 'checklist') {
+			data.items = [];
+			$('#masthead-checklist-items li').each(function(i) {
+				data.items.push({
+					label: $(this).find('input[type=text]').val(),
+					required: $(this).find('input[type=checkbox]').is(':checked') ? 1 : 0,
 				});
-				
-				if (!allRequiredEnabled && toggle.checked) {
-					toggle.checked = false;
-					featureItem.classList.add('disabled');
-				} else {
-					featureItem.classList.remove('disabled');
-				}
-			}
-		});
-	}
-	
-	// Listen for feature toggle changes
-	document.querySelectorAll('input[name^="features["]').forEach(toggle => {
-		toggle.addEventListener('change', checkFeatureDependencies);
+			});
+		}
+
+		$.post(ajaxurl, data)
+			.done(function(res) {
+				$btn.text(res.success ? mastheadAdmin.strings.saved : mastheadAdmin.strings.error);
+			})
+			.fail(function() {
+				$btn.text(mastheadAdmin.strings.error);
+			})
+			.always(function() {
+				setTimeout(() => $btn.text(section === 'features' ? 'Save Features' : section === 'integrations' ? 'Save Integrations' : 'Save Checklist').prop('disabled', false), 2000);
+			});
 	});
-	
-	// Initial dependency check
-	checkFeatureDependencies();
-	
-	// Handle cleanup days visibility
-	const cleanupToggle = document.getElementById('cleanup-old-revisions');
-	const cleanupDaysRow = document.querySelector('.cleanup-days-row');
-	
-	if (cleanupToggle) {
-		cleanupToggle.addEventListener('change', function() {
-			cleanupDaysRow.style.display = this.checked ? '' : 'none';
+	// Install module.
+	$(document).on('click', '.masthead-install-btn', function() {
+		const $btn = $(this);
+		const module = $btn.data('module');
+		const $row = $btn.closest('tr');
+
+		$btn.text('Installing…').prop('disabled', true);
+
+		$.post(ajaxurl, {
+			action: 'masthead_install_module',
+			nonce: mastheadAdmin.nonce,
+			module,
+		})
+		.done(function(res) {
+			if (res.success) {
+				$btn.replaceWith(`
+					<span class="masthead-badge masthead-badge-installed">Installed</span>
+					<button type="button" class="button button-primary button-small masthead-activate-btn" data-module="${module}">Activate</button>
+				`);
+			} else {
+				$btn.text('Install failed').addClass('masthead-btn-error');
+				console.error(res.data?.message);
+			}
+		})
+		.fail(function() {
+			$btn.text('Install failed').addClass('masthead-btn-error').prop('disabled', false);
 		});
-	}
-	
-	// Form submissions handled by admin.js
+	});
+
+	// Activate module.
+	$(document).on('click', '.masthead-activate-btn', function() {
+		const $btn = $(this);
+		const module = $btn.data('module');
+
+		$btn.text('Activating…').prop('disabled', true);
+
+		$.post(ajaxurl, {
+			action: 'masthead_activate_module',
+			nonce: mastheadAdmin.nonce,
+			module,
+		})
+		.done(function(res) {
+			if (res.success) {
+				$btn.closest('td').find('.masthead-badge').replaceWith('<span class="masthead-badge masthead-badge-active">✓ Active</span>');
+				$btn.remove();
+			} else {
+				$btn.text('Activation failed').addClass('masthead-btn-error').prop('disabled', false);
+				console.error(res.data?.message);
+			}
+		})
+		.fail(function() {
+			$btn.text('Activation failed').addClass('masthead-btn-error').prop('disabled', false);
+		});
+	});
 });
 </script>

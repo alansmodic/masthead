@@ -1,8 +1,8 @@
 <?php
 /**
- * Unified REST API controller for Editorial.io
+ * Unified REST API controller for Masthead
  *
- * @package EditorialIO
+ * @package Masthead
  */
 
 if ( ! defined( 'ABSPATH' ) ) {
@@ -10,16 +10,16 @@ if ( ! defined( 'ABSPATH' ) ) {
 }
 
 /**
- * Class Editorial_IO_REST_Controller
+ * Class Masthead_REST_Controller
  *
  * Unified REST API controller combining staged revisions and revision timeline functionality.
  */
-class Editorial_IO_REST_Controller extends WP_REST_Controller {
+class Masthead_REST_Controller extends WP_REST_Controller {
 
 	/**
 	 * Settings instance.
 	 *
-	 * @var Editorial_IO_Settings
+	 * @var Masthead_Settings
 	 */
 	private $settings;
 
@@ -29,7 +29,7 @@ class Editorial_IO_REST_Controller extends WP_REST_Controller {
 	public function __construct() {
 		$this->namespace = 'editorial/v1';
 		$this->rest_base = '';
-		$this->settings  = Editorial_IO_Settings::get_instance();
+		$this->settings  = Masthead_Settings::get_instance();
 	}
 
 	/**
@@ -340,8 +340,8 @@ class Editorial_IO_REST_Controller extends WP_REST_Controller {
 	 * @return WP_REST_Response
 	 */
 	public function get_staged_revisions( $request ) {
-		if ( ! class_exists( 'Editorial_IO_Staged_Revisions' ) ) {
-			return new WP_Error( 'feature_disabled', __( 'Staged revisions feature is disabled.', 'editorial-io' ), array( 'status' => 404 ) );
+		if ( ! class_exists( 'Masthead_Staged_Revisions' ) ) {
+			return new WP_Error( 'feature_disabled', __( 'Staged revisions feature is disabled.', 'masthead' ), array( 'status' => 404 ) );
 		}
 
 		$args = array(
@@ -350,7 +350,7 @@ class Editorial_IO_REST_Controller extends WP_REST_Controller {
 			'page'     => $request->get_param( 'page' ),
 		);
 
-		$items = Editorial_IO_Staged_Revisions::get_all( $args );
+		$items = Masthead_Staged_Revisions::get_all( $args );
 
 		$data = array();
 		foreach ( $items as $item ) {
@@ -373,7 +373,7 @@ class Editorial_IO_REST_Controller extends WP_REST_Controller {
 
 		$post = get_post( $post_id );
 		if ( ! $post ) {
-			return new WP_Error( 'not_found', __( 'Post not found.', 'editorial-io' ), array( 'status' => 404 ) );
+			return new WP_Error( 'not_found', __( 'Post not found.', 'masthead' ), array( 'status' => 404 ) );
 		}
 
 		// Get revisions.
@@ -418,14 +418,14 @@ class Editorial_IO_REST_Controller extends WP_REST_Controller {
 
 		$revision = get_post( $revision_id );
 		if ( ! $revision || 'revision' !== $revision->post_type ) {
-			return new WP_Error( 'not_found', __( 'Revision not found.', 'editorial-io' ), array( 'status' => 404 ) );
+			return new WP_Error( 'not_found', __( 'Revision not found.', 'masthead' ), array( 'status' => 404 ) );
 		}
 
 		// Determine what to compare against.
 		if ( $compare_to ) {
 			$compare_post = get_post( $compare_to );
 			if ( ! $compare_post ) {
-				return new WP_Error( 'not_found', __( 'Comparison revision not found.', 'editorial-io' ), array( 'status' => 404 ) );
+				return new WP_Error( 'not_found', __( 'Comparison revision not found.', 'masthead' ), array( 'status' => 404 ) );
 			}
 		} else {
 			$compare_post = $this->get_previous_revision( $revision );
@@ -435,16 +435,16 @@ class Editorial_IO_REST_Controller extends WP_REST_Controller {
 		}
 
 		// Generate diff using the word-level diff feature if enabled.
-		if ( $this->settings->is_feature_enabled( 'word_level_diffs' ) && class_exists( 'Editorial_IO_Word_Level_Diffs' ) ) {
-			$diff_data = Editorial_IO_Word_Level_Diffs::generate_diff( $compare_post, $revision );
+		if ( $this->settings->is_feature_enabled( 'word_level_diffs' ) && class_exists( 'Masthead_Word_Level_Diffs' ) ) {
+			$diff_data = Masthead_Word_Level_Diffs::generate_diff( $compare_post, $revision );
 		} else {
 			// Fallback to basic diff.
 			$diff_data = $this->generate_basic_diff( $compare_post, $revision );
 		}
 
 		// Add media changes if feature is enabled.
-		if ( $this->settings->is_feature_enabled( 'media_change_tracking' ) && class_exists( 'Editorial_IO_Media_Change_Tracking' ) ) {
-			$diff_data['media_changes'] = Editorial_IO_Media_Change_Tracking::get_media_changes(
+		if ( $this->settings->is_feature_enabled( 'media_change_tracking' ) && class_exists( 'Masthead_Media_Change_Tracking' ) ) {
+			$diff_data['media_changes'] = Masthead_Media_Change_Tracking::get_media_changes(
 				$compare_post->post_content,
 				$revision->post_content
 			);
@@ -599,7 +599,7 @@ class Editorial_IO_REST_Controller extends WP_REST_Controller {
 			'date_relative' => human_time_diff( strtotime( $revision->post_modified_gmt ), time() ),
 			'author'        => array(
 				'id'     => $revision->post_author,
-				'name'   => $author ? $author->display_name : __( 'Unknown', 'editorial-io' ),
+				'name'   => $author ? $author->display_name : __( 'Unknown', 'masthead' ),
 				'avatar' => get_avatar_url( $revision->post_author, array( 'size' => 48 ) ),
 			),
 			'type'          => $is_staged ? 'staged' : ( $is_autosave ? 'autosave' : 'manual' ),
@@ -616,7 +616,7 @@ class Editorial_IO_REST_Controller extends WP_REST_Controller {
 	 */
 	private function get_author_name( $user_id ) {
 		$user = get_userdata( $user_id );
-		return $user ? $user->display_name : __( 'Unknown', 'editorial-io' );
+		return $user ? $user->display_name : __( 'Unknown', 'masthead' );
 	}
 
 	/**
@@ -719,7 +719,7 @@ class Editorial_IO_REST_Controller extends WP_REST_Controller {
 		$revision    = get_post( $revision_id );
 
 		if ( ! $revision ) {
-			return new WP_Error( 'not_found', __( 'Staged revision not found.', 'editorial-io' ), array( 'status' => 404 ) );
+			return new WP_Error( 'not_found', __( 'Staged revision not found.', 'masthead' ), array( 'status' => 404 ) );
 		}
 
 		return current_user_can( 'publish_posts' ) && current_user_can( 'edit_post', $revision->post_parent );
@@ -757,7 +757,7 @@ class Editorial_IO_REST_Controller extends WP_REST_Controller {
 		$revision    = get_post( $revision_id );
 
 		if ( ! $revision ) {
-			return new WP_Error( 'not_found', __( 'Revision not found.', 'editorial-io' ), array( 'status' => 404 ) );
+			return new WP_Error( 'not_found', __( 'Revision not found.', 'masthead' ), array( 'status' => 404 ) );
 		}
 
 		return current_user_can( 'edit_post', $revision->post_parent );
@@ -774,7 +774,7 @@ class Editorial_IO_REST_Controller extends WP_REST_Controller {
 		$revision    = get_post( $revision_id );
 
 		if ( ! $revision ) {
-			return new WP_Error( 'not_found', __( 'Revision not found.', 'editorial-io' ), array( 'status' => 404 ) );
+			return new WP_Error( 'not_found', __( 'Revision not found.', 'masthead' ), array( 'status' => 404 ) );
 		}
 
 		return current_user_can( 'edit_post', $revision->post_parent );
@@ -810,10 +810,10 @@ class Editorial_IO_REST_Controller extends WP_REST_Controller {
 	 * @return WP_REST_Response|WP_Error
 	 */
 	public function create_staged_revision( $request ) {
-		if ( class_exists( 'Editorial_IO_Staged_Revisions' ) ) {
-			return Editorial_IO_Staged_Revisions::rest_create_staged_revision( $request );
+		if ( class_exists( 'Masthead_Staged_Revisions' ) ) {
+			return Masthead_Staged_Revisions::rest_create_staged_revision( $request );
 		}
-		return new WP_Error( 'feature_disabled', __( 'Staged revisions feature is disabled.', 'editorial-io' ), array( 'status' => 404 ) );
+		return new WP_Error( 'feature_disabled', __( 'Staged revisions feature is disabled.', 'masthead' ), array( 'status' => 404 ) );
 	}
 
 	/**
@@ -823,10 +823,10 @@ class Editorial_IO_REST_Controller extends WP_REST_Controller {
 	 * @return WP_REST_Response|WP_Error
 	 */
 	public function get_staged_revision( $request ) {
-		if ( class_exists( 'Editorial_IO_Staged_Revisions' ) ) {
-			return Editorial_IO_Staged_Revisions::rest_get_staged_revision( $request );
+		if ( class_exists( 'Masthead_Staged_Revisions' ) ) {
+			return Masthead_Staged_Revisions::rest_get_staged_revision( $request );
 		}
-		return new WP_Error( 'feature_disabled', __( 'Staged revisions feature is disabled.', 'editorial-io' ), array( 'status' => 404 ) );
+		return new WP_Error( 'feature_disabled', __( 'Staged revisions feature is disabled.', 'masthead' ), array( 'status' => 404 ) );
 	}
 
 	/**
@@ -836,10 +836,10 @@ class Editorial_IO_REST_Controller extends WP_REST_Controller {
 	 * @return WP_REST_Response|WP_Error
 	 */
 	public function publish_staged_revision( $request ) {
-		if ( class_exists( 'Editorial_IO_Staged_Revisions' ) ) {
-			return Editorial_IO_Staged_Revisions::rest_publish_staged_revision( $request );
+		if ( class_exists( 'Masthead_Staged_Revisions' ) ) {
+			return Masthead_Staged_Revisions::rest_publish_staged_revision( $request );
 		}
-		return new WP_Error( 'feature_disabled', __( 'Staged revisions feature is disabled.', 'editorial-io' ), array( 'status' => 404 ) );
+		return new WP_Error( 'feature_disabled', __( 'Staged revisions feature is disabled.', 'masthead' ), array( 'status' => 404 ) );
 	}
 
 	/**
@@ -849,10 +849,10 @@ class Editorial_IO_REST_Controller extends WP_REST_Controller {
 	 * @return WP_REST_Response|WP_Error
 	 */
 	public function schedule_staged_revision( $request ) {
-		if ( class_exists( 'Editorial_IO_Scheduled_Publishing' ) ) {
-			return Editorial_IO_Scheduled_Publishing::rest_schedule_staged_revision( $request );
+		if ( class_exists( 'Masthead_Scheduled_Publishing' ) ) {
+			return Masthead_Scheduled_Publishing::rest_schedule_staged_revision( $request );
 		}
-		return new WP_Error( 'feature_disabled', __( 'Scheduled publishing feature is disabled.', 'editorial-io' ), array( 'status' => 404 ) );
+		return new WP_Error( 'feature_disabled', __( 'Scheduled publishing feature is disabled.', 'masthead' ), array( 'status' => 404 ) );
 	}
 
 	/**
@@ -862,10 +862,10 @@ class Editorial_IO_REST_Controller extends WP_REST_Controller {
 	 * @return WP_REST_Response|WP_Error
 	 */
 	public function approve_staged_revision( $request ) {
-		if ( class_exists( 'Editorial_IO_Staged_Revisions' ) ) {
-			return Editorial_IO_Staged_Revisions::rest_approve_staged_revision( $request );
+		if ( class_exists( 'Masthead_Staged_Revisions' ) ) {
+			return Masthead_Staged_Revisions::rest_approve_staged_revision( $request );
 		}
-		return new WP_Error( 'feature_disabled', __( 'Staged revisions feature is disabled.', 'editorial-io' ), array( 'status' => 404 ) );
+		return new WP_Error( 'feature_disabled', __( 'Staged revisions feature is disabled.', 'masthead' ), array( 'status' => 404 ) );
 	}
 
 	/**
@@ -875,10 +875,10 @@ class Editorial_IO_REST_Controller extends WP_REST_Controller {
 	 * @return WP_REST_Response|WP_Error
 	 */
 	public function reject_staged_revision( $request ) {
-		if ( class_exists( 'Editorial_IO_Staged_Revisions' ) ) {
-			return Editorial_IO_Staged_Revisions::rest_reject_staged_revision( $request );
+		if ( class_exists( 'Masthead_Staged_Revisions' ) ) {
+			return Masthead_Staged_Revisions::rest_reject_staged_revision( $request );
 		}
-		return new WP_Error( 'feature_disabled', __( 'Staged revisions feature is disabled.', 'editorial-io' ), array( 'status' => 404 ) );
+		return new WP_Error( 'feature_disabled', __( 'Staged revisions feature is disabled.', 'masthead' ), array( 'status' => 404 ) );
 	}
 
 	/**
@@ -888,10 +888,10 @@ class Editorial_IO_REST_Controller extends WP_REST_Controller {
 	 * @return WP_REST_Response|WP_Error
 	 */
 	public function delete_staged_revision( $request ) {
-		if ( class_exists( 'Editorial_IO_Staged_Revisions' ) ) {
-			return Editorial_IO_Staged_Revisions::rest_delete_staged_revision( $request );
+		if ( class_exists( 'Masthead_Staged_Revisions' ) ) {
+			return Masthead_Staged_Revisions::rest_delete_staged_revision( $request );
 		}
-		return new WP_Error( 'feature_disabled', __( 'Staged revisions feature is disabled.', 'editorial-io' ), array( 'status' => 404 ) );
+		return new WP_Error( 'feature_disabled', __( 'Staged revisions feature is disabled.', 'masthead' ), array( 'status' => 404 ) );
 	}
 
 	/**
@@ -901,10 +901,10 @@ class Editorial_IO_REST_Controller extends WP_REST_Controller {
 	 * @return WP_REST_Response|WP_Error
 	 */
 	public function restore_revision( $request ) {
-		if ( class_exists( 'Editorial_IO_Revision_Timeline' ) ) {
-			return Editorial_IO_Revision_Timeline::rest_restore_revision( $request );
+		if ( class_exists( 'Masthead_Revision_Timeline' ) ) {
+			return Masthead_Revision_Timeline::rest_restore_revision( $request );
 		}
-		return new WP_Error( 'feature_disabled', __( 'Revision timeline feature is disabled.', 'editorial-io' ), array( 'status' => 404 ) );
+		return new WP_Error( 'feature_disabled', __( 'Revision timeline feature is disabled.', 'masthead' ), array( 'status' => 404 ) );
 	}
 
 	/**
@@ -914,9 +914,9 @@ class Editorial_IO_REST_Controller extends WP_REST_Controller {
 	 * @return WP_REST_Response|WP_Error
 	 */
 	public function get_recent_revisions( $request ) {
-		if ( class_exists( 'Editorial_IO_Revision_Timeline' ) ) {
-			return Editorial_IO_Revision_Timeline::rest_get_recent_revisions( $request );
+		if ( class_exists( 'Masthead_Revision_Timeline' ) ) {
+			return Masthead_Revision_Timeline::rest_get_recent_revisions( $request );
 		}
-		return new WP_Error( 'feature_disabled', __( 'Revision timeline feature is disabled.', 'editorial-io' ), array( 'status' => 404 ) );
+		return new WP_Error( 'feature_disabled', __( 'Revision timeline feature is disabled.', 'masthead' ), array( 'status' => 404 ) );
 	}
 }

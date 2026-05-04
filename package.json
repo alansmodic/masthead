@@ -1,0 +1,14 @@
+{
+  "name": "editorial-io",
+  "private": true,
+  "description": "Local dev/test harness for the Editorial.io WordPress plugin.",
+  "scripts": {
+    "wp-env:start": "wp-env start",
+    "wp-env:stop": "wp-env stop",
+    "wp-env:destroy": "wp-env destroy",
+    "test:php": "wp-env run tests phpunit -c /var/www/html/wp-content/plugins/editorial-io/tests/phpunit.xml.dist"
+  },
+  "devDependencies": {
+    "@wordpress/env": "^10.14.0"
+  }
+}

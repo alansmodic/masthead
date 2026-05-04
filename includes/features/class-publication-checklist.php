@@ -1,8 +1,8 @@
 <?php
 /**
- * Publication Checklist feature for Editorial.io
+ * Publication Checklist feature for Masthead
  *
- * @package EditorialIO
+ * @package Masthead
  */
 
 if ( ! defined( 'ABSPATH' ) ) {
@@ -10,30 +10,30 @@ if ( ! defined( 'ABSPATH' ) ) {
 }
 
 /**
- * Class Editorial_IO_Publication_Checklist
+ * Class Masthead_Publication_Checklist
  *
  * Handles publication checklist functionality - show checklist before publishing.
  */
-class Editorial_IO_Publication_Checklist {
+class Masthead_Publication_Checklist {
 
 	/**
 	 * Singleton instance.
 	 *
-	 * @var Editorial_IO_Publication_Checklist|null
+	 * @var Masthead_Publication_Checklist|null
 	 */
 	private static $instance = null;
 
 	/**
 	 * Settings instance.
 	 *
-	 * @var Editorial_IO_Settings
+	 * @var Masthead_Settings
 	 */
 	private $settings;
 
 	/**
 	 * Get singleton instance.
 	 *
-	 * @return Editorial_IO_Publication_Checklist
+	 * @return Masthead_Publication_Checklist
 	 */
 	public static function get_instance() {
 		if ( null === self::$instance ) {
@@ -46,13 +46,16 @@ class Editorial_IO_Publication_Checklist {
 	 * Constructor.
 	 */
 	private function __construct() {
-		$this->settings = Editorial_IO_Settings::get_instance();
+		$this->settings = Masthead_Settings::get_instance();
 
 		// Only hook into publish flow if checklist is enabled.
 		if ( $this->is_checklist_enabled() ) {
 			add_action( 'transition_post_status', array( $this, 'handle_post_status_transition' ), 10, 3 );
 			add_action( 'wp_ajax_editorial_io_bypass_checklist', array( $this, 'ajax_bypass_checklist' ) );
 			add_action( 'wp_ajax_editorial_io_validate_checklist', array( $this, 'ajax_validate_checklist' ) );
+			add_filter( 'wp_insert_post_data', array( $this, 'enforce_checklist_on_save' ), 10, 2 );
+			add_filter( 'rest_pre_insert_post', array( $this, 'enforce_checklist_on_rest' ), 10, 2 );
+			add_action( 'admin_notices', array( $this, 'maybe_show_checklist_notice' ) );
 		}
 	}
 
@@ -84,7 +87,7 @@ class Editorial_IO_Publication_Checklist {
 	 */
 	public function should_show_checklist( $new_status, $old_status, $post ) {
 		// Only for supported post types.
-		if ( ! Editorial_IO::post_type_supports_editorial( $post->post_type ) ) {
+		if ( ! Masthead::post_type_supports_editorial( $post->post_type ) ) {
 			return false;
 		}
 
@@ -94,7 +97,7 @@ class Editorial_IO_Publication_Checklist {
 		}
 
 		// Don't show for new posts (draft to publish) unless specifically configured.
-		$show_for_new = apply_filters( 'editorial_io_checklist_show_for_new_posts', false );
+		$show_for_new = apply_filters( 'masthead_checklist_show_for_new_posts', false );
 		if ( ! $show_for_new && 'draft' === $old_status ) {
 			return false;
 		}
@@ -106,7 +109,7 @@ class Editorial_IO_Publication_Checklist {
 
 		// Show when publishing from other statuses if configured.
 		$show_for_statuses = apply_filters(
-			'editorial_io_checklist_show_for_statuses',
+			'masthead_checklist_show_for_statuses',
 			array( 'pending', 'future' )
 		);
 
@@ -139,14 +142,131 @@ class Editorial_IO_Publication_Checklist {
 	}
 
 	/**
+	 * Enforce checklist completion on non-REST saves.
+	 *
+	 * @param array $data    Sanitized post data.
+	 * @param array $postarr Raw post data.
+	 * @return array
+	 */
+	public function enforce_checklist_on_save( $data, $postarr ) {
+		if ( empty( $postarr['ID'] ) ) {
+			return $data;
+		}
+
+		$post_id = absint( $postarr['ID'] );
+		$post    = get_post( $post_id );
+		if ( ! $post ) {
+			return $data;
+		}
+
+		// Skip autosaves, revisions, and non-publish transitions.
+		if ( wp_is_post_autosave( $post_id ) || 'revision' === ( $postarr['post_type'] ?? '' ) ) {
+			return $data;
+		}
+
+		$new_status = $data['post_status'] ?? $post->post_status;
+		if ( 'publish' !== $new_status ) {
+			return $data;
+		}
+
+		if ( ! $this->should_show_checklist( $new_status, $post->post_status, $post ) ) {
+			return $data;
+		}
+
+		$bypassed = get_post_meta( $post_id, '_editorial_checklist_bypassed', true );
+		if ( $bypassed ) {
+			return $data;
+		}
+
+		// Block the publish by reverting status and surface a notice.
+		$data['post_status'] = $post->post_status;
+
+		add_filter( 'redirect_post_location', array( $this, 'add_checklist_notice_query_arg' ), 10, 2 );
+
+		return $data;
+	}
+
+	/**
+	 * Enforce checklist completion on REST saves.
+	 *
+	 * @param WP_Post         $prepared_post Prepared post object.
+	 * @param WP_REST_Request $request       Request object.
+	 * @return WP_Post|WP_Error
+	 */
+	public function enforce_checklist_on_rest( $prepared_post, $request ) {
+		if ( ! ( $prepared_post instanceof WP_Post ) ) {
+			return $prepared_post;
+		}
+
+		$post_id = absint( $request->get_param( 'id' ) );
+		if ( ! $post_id && ! empty( $prepared_post->ID ) ) {
+			$post_id = absint( $prepared_post->ID );
+		}
+
+		if ( ! $post_id ) {
+			return $prepared_post;
+		}
+
+		$post = get_post( $post_id );
+		if ( ! $post ) {
+			return $prepared_post;
+		}
+
+		$new_status = $prepared_post->post_status ?? $post->post_status;
+		if ( 'publish' !== $new_status ) {
+			return $prepared_post;
+		}
+
+		if ( ! $this->should_show_checklist( $new_status, $post->post_status, $post ) ) {
+			return $prepared_post;
+		}
+
+		$bypassed = get_post_meta( $post_id, '_editorial_checklist_bypassed', true );
+		if ( $bypassed ) {
+			return $prepared_post;
+		}
+
+		return new WP_Error(
+			'masthead_checklist_required',
+			__( 'Please complete the publication checklist before publishing.', 'masthead' ),
+			array( 'status' => 400 )
+		);
+	}
+
+	/**
+	 * Add query arg for checklist enforcement notice.
+	 *
+	 * @param string $location Redirect location.
+	 * @param int    $post_id  Post ID.
+	 * @return string
+	 */
+	public function add_checklist_notice_query_arg( $location, $post_id ) {
+		return add_query_arg( 'masthead_checklist_required', 1, $location );
+	}
+
+	/**
+	 * Show admin notice when checklist blocks publishing.
+	 */
+	public function maybe_show_checklist_notice() {
+		if ( empty( $_GET['masthead_checklist_required'] ) ) {
+			return;
+		}
+
+		printf(
+			'<div class="notice notice-error"><p>%s</p></div>',
+			esc_html__( 'Publication checklist must be completed before publishing.', 'masthead' )
+		);
+	}
+
+	/**
 	 * AJAX handler for bypassing checklist.
 	 */
 	public function ajax_bypass_checklist() {
-		check_ajax_referer( 'editorial_io_checklist', 'nonce' );
+		check_ajax_referer( 'masthead_checklist', 'nonce' );
 
 		$post_id = absint( $_POST['post_id'] ?? 0 );
 		if ( ! $post_id || ! current_user_can( 'edit_post', $post_id ) ) {
-			wp_send_json_error( array( 'message' => __( 'Permission denied.', 'editorial-io' ) ) );
+			wp_send_json_error( array( 'message' => __( 'Permission denied.', 'masthead' ) ) );
 		}
 
 		$bypass_type = sanitize_key( $_POST['bypass_type'] ?? 'manual' );
@@ -158,7 +278,7 @@ class Editorial_IO_Publication_Checklist {
 		$this->log_checklist_bypass( $post_id, $bypass_type );
 
 		wp_send_json_success( array(
-			'message' => __( 'Checklist bypassed. You may now publish.', 'editorial-io' ),
+			'message' => __( 'Checklist bypassed. You may now publish.', 'masthead' ),
 		) );
 	}
 
@@ -166,11 +286,11 @@ class Editorial_IO_Publication_Checklist {
 	 * AJAX handler for validating checklist completion.
 	 */
 	public function ajax_validate_checklist() {
-		check_ajax_referer( 'editorial_io_checklist', 'nonce' );
+		check_ajax_referer( 'masthead_checklist', 'nonce' );
 
 		$post_id = absint( $_POST['post_id'] ?? 0 );
 		if ( ! $post_id || ! current_user_can( 'edit_post', $post_id ) ) {
-			wp_send_json_error( array( 'message' => __( 'Permission denied.', 'editorial-io' ) ) );
+			wp_send_json_error( array( 'message' => __( 'Permission denied.', 'masthead' ) ) );
 		}
 
 		$checked_items = $_POST['checked_items'] ?? array();
@@ -184,12 +304,12 @@ class Editorial_IO_Publication_Checklist {
 			$this->log_checklist_completion( $post_id, $checked_items );
 
 			wp_send_json_success( array(
-				'message'  => __( 'Checklist completed. You may now publish.', 'editorial-io' ),
+				'message'  => __( 'Checklist completed. You may now publish.', 'masthead' ),
 				'validated' => true,
 			) );
 		} else {
 			wp_send_json_error( array(
-				'message'         => __( 'Please complete all required checklist items.', 'editorial-io' ),
+				'message'         => __( 'Please complete all required checklist items.', 'masthead' ),
 				'missing_items'   => $validation_result['missing_required'],
 				'validated'       => false,
 			) );
@@ -245,7 +365,7 @@ class Editorial_IO_Publication_Checklist {
 		 *
 		 * @param array $log_entry Log entry data.
 		 */
-		do_action( 'editorial_io_checklist_bypassed', $log_entry );
+		do_action( 'masthead_checklist_bypassed', $log_entry );
 
 		// Store in post meta for audit trail.
 		$existing_log = get_post_meta( $post_id, '_editorial_checklist_log', true );
@@ -296,7 +416,7 @@ class Editorial_IO_Publication_Checklist {
 		 *
 		 * @param array $log_entry Log entry data.
 		 */
-		do_action( 'editorial_io_checklist_completed', $log_entry );
+		do_action( 'masthead_checklist_completed', $log_entry );
 
 		// Store in post meta for audit trail.
 		$existing_log = get_post_meta( $post_id, '_editorial_checklist_log', true );
@@ -454,11 +574,11 @@ class Editorial_IO_Publication_Checklist {
 		return array(
 			'enabled'        => true,
 			'items'          => $this->get_checklist_items(),
-			'nonce'          => wp_create_nonce( 'editorial_io_checklist' ),
+			'nonce'          => wp_create_nonce( 'masthead_checklist' ),
 			'ajax_url'       => admin_url( 'admin-ajax.php' ),
-			'show_for_new'   => apply_filters( 'editorial_io_checklist_show_for_new_posts', false ),
+			'show_for_new'   => apply_filters( 'masthead_checklist_show_for_new_posts', false ),
 			'show_for_statuses' => apply_filters(
-				'editorial_io_checklist_show_for_statuses',
+				'masthead_checklist_show_for_statuses',
 				array( 'pending', 'future' )
 			),
 		);
@@ -476,14 +596,14 @@ class Editorial_IO_Publication_Checklist {
 		}
 
 		if ( empty( $items ) ) {
-			return '<p>' . __( 'No checklist items configured.', 'editorial-io' ) . '</p>';
+			return '<p>' . __( 'No checklist items configured.', 'masthead' ) . '</p>';
 		}
 
-		$output = '<div class="editorial-io-checklist-items">';
+		$output = '<div class="masthead-checklist-items">';
 		
 		foreach ( $items as $index => $item ) {
 			$required_class = $item['required'] ? 'required' : 'optional';
-			$required_label = $item['required'] ? __( '(Required)', 'editorial-io' ) : __( '(Optional)', 'editorial-io' );
+			$required_label = $item['required'] ? __( '(Required)', 'masthead' ) : __( '(Optional)', 'masthead' );
 			
 			$output .= sprintf(
 				'<div class="checklist-item %s">
@@ -518,7 +638,7 @@ class Editorial_IO_Publication_Checklist {
 		 * @param bool $can_bypass Default: editors and admins can bypass.
 		 */
 		return apply_filters(
-			'editorial_io_user_can_bypass_checklist',
+			'masthead_user_can_bypass_checklist',
 			current_user_can( 'edit_others_posts' )
 		);
 	}
@@ -531,23 +651,23 @@ class Editorial_IO_Publication_Checklist {
 	public static function get_default_checklist_items() {
 		return array(
 			array(
-				'label'    => __( 'I have reviewed all changes', 'editorial-io' ),
+				'label'    => __( 'I have reviewed all changes', 'masthead' ),
 				'required' => true,
 			),
 			array(
-				'label'    => __( 'Content has been proofread for errors', 'editorial-io' ),
+				'label'    => __( 'Content has been proofread for errors', 'masthead' ),
 				'required' => true,
 			),
 			array(
-				'label'    => __( 'Links have been verified', 'editorial-io' ),
+				'label'    => __( 'Links have been verified', 'masthead' ),
 				'required' => false,
 			),
 			array(
-				'label'    => __( 'SEO meta data is complete', 'editorial-io' ),
+				'label'    => __( 'SEO meta data is complete', 'masthead' ),
 				'required' => false,
 			),
 			array(
-				'label'    => __( 'Images have appropriate alt text', 'editorial-io' ),
+				'label'    => __( 'Images have appropriate alt text', 'masthead' ),
 				'required' => false,
 			),
 		);

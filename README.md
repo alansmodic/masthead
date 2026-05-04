@@ -1,281 +1,77 @@
-# Editorial.io - Complete Editorial Workflow Suite for WordPress
+# Masthead
 
-[![Try on WordPress Playground](https://img.shields.io/badge/Try%20on-WordPress%20Playground-blue?logo=wordpress)](https://playground.wordpress.net/?blueprint-url=https://raw.githubusercontent.com/alansmodic/editorial-io/main/blueprint.json)
+**The WordPress editorial suite.**
 
-Editorial.io transforms WordPress into a professional editorial platform by providing advanced workflow tools that major publishing houses and content teams need. Instead of managing multiple separate plugins, Editorial.io offers a unified, modular solution that can grow with your team's needs.
+Masthead is a lightweight coordinator plugin that unifies [Edit Ledger](https://github.com/alansmodic/edit-ledger), [Rewrites](https://github.com/alansmodic/rewrites), and the [WordPress AI plugin](https://github.com/WordPress/ai) into a single admin screen — and wires them together with cross-plugin integrations that only activate when both sides are present.
 
-**What makes Editorial.io different?** While WordPress handles basic content creation, it lacks sophisticated editorial workflows. Editorial.io fills that gap by adding staged revisions, visual diff comparison, publication checklists, and comprehensive revision tracking - all in one cohesive plugin that works seamlessly with the block editor.
+## Suite Modules
 
-## 🎯 Core Problem It Solves
+| Plugin | What it does |
+|--------|-------------|
+| [Edit Ledger](https://github.com/alansmodic/edit-ledger) | Revision history, media change tracking, and AI summaries |
+| [Rewrites](https://github.com/alansmodic/rewrites) | Staged revisions, publication checklist, and scheduled publishing |
+| [WordPress AI](https://github.com/WordPress/ai) | AI-powered content review, alt text generation, content classification, and more |
 
-**The Challenge:** WordPress's default workflow publishes changes immediately, making it difficult for editorial teams to:
-- Review changes before they go live
-- Track exactly what changed between versions
-- Maintain quality standards across content
-- Coordinate timed publication of updates
-- See the complete history of content evolution
+Each plugin works standalone. Masthead adds the glue.
 
-**The Solution:** Editorial.io provides a complete editorial workflow that mirrors professional publishing environments, allowing teams to work confidently with published content without fear of accidentally breaking live pages.
+## Cross-Plugin Integrations
 
-## 🚀 Key Features
+**Edit Ledger + Rewrites**
+- When a staged revision is submitted via Rewrites, Masthead automatically calls Edit Ledger's `summarize-revision` ability and attaches the AI summary to the approval panel
+- Reviewers see a plain-English summary of what changed before opening the diff
 
-### 📝 Staged Revisions - Save Without Fear
-Transform how your team handles content updates. Instead of editing published content directly, create "staged revisions" that let you save changes for review without affecting the live page.
+**WordPress AI + Rewrites**
+- Surfaces WordPress AI's Review Notes as a checklist item before a staged revision can be published
+- AI review status shown directly in the Rewrites publication checklist
 
-**Perfect for:**
-- Major content updates that need editorial approval
-- Collaborative writing where multiple people contribute
-- Time-sensitive updates that need to go live at specific times
-- Quality control workflows in professional environments
+## Masthead's Own Features
 
-**How it works:** Click "Save as Rewrite" instead of "Update" - your changes are saved separately and can be reviewed, scheduled, or published later.
+Masthead also ships a few features not bundled in the standalone plugins:
 
-### ✅ Publication Checklist - Ensure Quality
-Never publish incomplete content again. Create customizable checklists that authors must complete before changes can go live.
+- **Suite Settings Screen** — configure all modules from one place
+- **Module Registry** — detect which suite plugins are active and surface their status
+- **GitHub Updater** — auto-update all suite plugins from their GitHub releases
+- **Editorial Calendar** — visual drag-and-drop publishing calendar (coming soon)
 
-**Perfect for:**
-- SEO requirements (meta descriptions, alt text, keyword optimization)
-- Legal compliance (fact-checking, source verification, disclaimers)
-- Brand consistency (tone, style, formatting standards)
-- Technical requirements (link validation, image compression, accessibility)
+## Requirements
 
-**How it works:** Configure your checklist once, then every publication requires completing relevant items. Required items prevent publication until checked.
+- WordPress 7.0+
+- PHP 7.4+
+- [Edit Ledger](https://github.com/alansmodic/edit-ledger) (recommended)
+- [Rewrites](https://github.com/alansmodic/rewrites) (recommended)
+- [WordPress AI plugin](https://github.com/WordPress/ai) (recommended, replaces Redline)
 
-### ⏰ Scheduled Publishing - Perfect Timing
-Schedule your staged revisions to publish automatically at optimal times, perfect for coordinated campaigns or global audience timing.
+## Installation
 
-**Perfect for:**
-- Product launches coordinated across multiple time zones
-- Content campaigns with specific timing requirements  
-- Press releases that must go live at exact times
-- Social media coordination with scheduled content
+1. Upload the `masthead` folder to `/wp-content/plugins/`
+2. Activate **Masthead** in the WordPress admin
+3. Go to **Masthead → Settings** to see the suite status
+4. Install and activate the suite plugins you want
 
-**How it works:** After creating a staged revision, set a publication date/time. The system automatically publishes when the time arrives.
+## Development
 
-### 📊 Visual Revision Timeline - Complete History
-See the complete evolution of your content with rich timeline views showing who changed what and when. No more mystery about content modifications.
+The dev environment uses [WordPress Studio](https://developer.wordpress.com/docs/developer-tools/studio/) with WordPress trunk.
 
-**Perfect for:**
-- Tracking editorial decisions over time
-- Understanding content performance changes
-- Compliance and audit requirements
-- Team coordination and communication
-
-**How it works:** Every post gets a visual timeline showing all changes, with author info, timestamps, and change summaries.
-
-### 🔍 Word-Level Diffs - Precise Comparison
-See exactly what changed between any two versions with intelligent word-by-word comparison, making editorial review fast and accurate.
-
-**Perfect for:**
-- Editorial review and fact-checking
-- Client approval workflows
-- Understanding the impact of changes
-- Training junior editors on content modification
-
-**How it works:** Compare any two versions to see additions in green, deletions in red, with clean side-by-side or inline views.
-
-### 📸 Media Change Tracking - Visual Modifications
-Track changes to images, videos, and media files with visual indicators and thumbnail previews, essential for visual content management.
-
-**Perfect for:**
-- Image-heavy sites (e-commerce, portfolios, galleries)
-- Compliance tracking for regulated industries
-- Brand asset management
-- Visual content workflows
-
-**How it works:** Automatically detects when media is added, removed, or changed, with visual previews for easy identification.
-
-## 💼 Who Benefits Most
-
-### Editorial Teams & Publishers
-- **Magazine sites** managing multiple contributors and approval workflows
-- **News organizations** requiring fact-checking and editor approval
-- **Corporate blogs** with brand compliance requirements
-- **Content agencies** managing client content with approval processes
-
-### E-commerce & Business
-- **Online stores** updating product descriptions without disrupting live pages  
-- **Service businesses** coordinating marketing campaigns across multiple pages
-- **Professional services** maintaining compliance with industry regulations
-- **Membership sites** managing member-exclusive content updates
-
-### Content Creators & Agencies
-- **Freelance writers** providing clients with preview capabilities before publication
-- **Marketing agencies** managing campaigns across multiple client websites
-- **Design agencies** tracking visual content changes and client approvals
-- **Consultants** maintaining professional content standards
-
-## 🤖 WordPress Abilities API Integration
-
-Editorial.io is one of the first plugins to integrate with the **WordPress Abilities API** (WP 6.9+), registering every editorial workflow action as a discoverable, schema-validated, permission-gated ability.
-
-**What this means:**
-- **Command Palette:** Editors can type "approve revision" or "schedule publish" directly from the WordPress command palette
-- **AI Agent Ready:** Every ability includes JSON Schema for input/output, enabling AI assistants to programmatically interact with editorial workflows
-- **REST Discoverable:** All 14 abilities are exposed via `wp-abilities/v1/abilities` for external integrations
-- **Newsroom Roles:** Abilities map to editorial hierarchy — Reporter (create), Editor (approve/reject), Managing Editor (publish/schedule), Admin (settings)
-
-**14 registered abilities** across staged revisions, publication checklist, scheduled publishing, and revision timeline — all respecting the feature toggle system.
-
-## 🏗️ Technical Architecture
-
-**Built for WordPress:** Extends WordPress's native revision system instead of replacing it, ensuring compatibility and performance.
-
-**Modular Design:** Enable only the features you need. Six independent modules can be toggled on/off based on your workflow requirements.
-
-**Abilities API First:** Every editorial action is a registered WordPress Ability with proper permission callbacks, JSON Schema validation, and REST exposure (WP 6.9+).
-
-**Developer Friendly:** Comprehensive REST API, action/filter hooks, WordPress Abilities API, and clean code architecture make customization straightforward.
-
-**Performance Optimized:** Minimal database impact, efficient caching, and smart loading ensure your site stays fast.
-
-## 📋 Installation & Quick Start
-
-### Automatic Installation
-
-1. Download from WordPress.org or GitHub releases
-2. Upload via **Plugins → Add New → Upload Plugin**  
-3. Activate and configure at **Editorial.io → Settings**
-
-### Try It First
-
-[![Try on WordPress Playground](https://img.shields.io/badge/Try%20it%20now-WordPress%20Playground-3858e9?style=for-the-badge&logo=wordpress)](https://playground.wordpress.net/?blueprint-url=https://raw.githubusercontent.com/alansmodic/editorial-io/main/blueprint.json)
-
-Experience Editorial.io instantly in a live WordPress environment without installing anything.
-
-### First Steps
-
-1. **Enable desired features** at Editorial.io → Settings → Features
-2. **Configure publication checklist** with your quality requirements  
-3. **Edit any published post** to see the Editorial.io sidebar
-4. **Try "Save as Rewrite"** instead of "Update" to create your first staged revision
-
-## 🎛️ Feature Configuration
-
-### Smart Dependencies
-Features automatically manage dependencies:
-- **Scheduled Publishing** requires **Staged Revisions**
-- **Word-level Diffs** requires **Revision Timeline** 
-- **Media Tracking** requires **Revision Timeline**
-
-Disabling a required feature automatically disables dependent features with clear warnings.
-
-### Flexible Workflows
-Configure Editorial.io to match your existing processes:
-
-**Simple Workflow:** Enable just Staged Revisions for basic save-without-publishing
-**Editorial Workflow:** Add Publication Checklist for quality control
-**Professional Workflow:** Enable all features for complete editorial suite
-**Custom Workflow:** Pick and choose features based on specific needs
-
-## 🔧 Advanced Usage
-
-### Abilities API (WP 6.9+)
-Every editorial action is a registered ability, consumable by AI agents and external tools:
 ```bash
-# Discover all editorial abilities
-GET /wp-json/wp-abilities/v1/abilities?category=editorial-io
+# Site: smodiclaw-trunk
+# URL: http://localhost:8883
+# WP: 7.1-alpha
 
-# Abilities include JSON Schema for input/output validation
-# Examples: editorial-io/revision.create, editorial-io/revision.approve,
-#           editorial-io/revision.publish, editorial-io/checklist.validate
+studio site list
+studio wp --path ~/Studio/smodiclaw-trunk plugin list
 ```
 
-### REST API Integration
-Full REST API enables custom integrations:
+Build assets (Masthead has no JS build step — assets are plain JS):
 ```bash
-# Get all staged revisions
-GET /wp-json/editorial/v1/staged
-
-# Create staged revision
-POST /wp-json/editorial/v1/posts/{id}/staged
-
-# Compare revisions
-GET /wp-json/editorial/v1/revisions/{id}/diff
+# WordPress AI plugin requires a build step:
+cd ~/Studio/smodiclaw-trunk/wp-content/plugins/ai
+npm ci && npm run build
 ```
 
-### Workflow Automation
-Built-in hooks enable custom automation:
-```php
-// Notify team when revision is staged
-add_action('editorial_io_staged_revision_created', 'notify_editorial_team');
+## Project Board
 
-// Custom checklist validation
-add_filter('editorial_io_checklist_items', 'add_custom_checklist_items');
+Development tracked on [Fizzy](https://app.fizzy.do/6168043/boards/03g29ozgzuveeohe1bt4h0n7z).
 
-// Automatic scheduling
-add_action('editorial_io_staged_revision_approved', 'maybe_schedule_publication');
-```
+## License
 
-### Multi-Site Support
-Fully compatible with WordPress multisite:
-- Network activation supported
-- Per-site configuration options
-- Centralized or distributed management
-- Consistent workflows across all sites
-
-## 📊 Performance & Compatibility
-
-**WordPress Versions:** 6.4+ (tested up to latest)
-**PHP Requirements:** 7.4+ (recommended: 8.0+)  
-**Database Impact:** Minimal - extends existing revision tables
-**Memory Usage:** Efficient loading - features activate only when needed
-**Caching:** Compatible with all major caching plugins
-**Themes:** Works with any properly coded WordPress theme
-**Plugins:** Tested with popular SEO, caching, and editor plugins
-
-## 🛡️ Security & Permissions
-
-**WordPress Standards:** Follows all WordPress security best practices
-**Capability System:** Respects existing user roles and permissions
-**Data Validation:** All inputs sanitized and validated
-**Access Control:** Granular permissions per feature and function
-**Audit Trail:** Complete logging of all editorial actions
-
-## 🆘 Support & Documentation
-
-### Getting Started
-- 📖 **Quick Start Guide:** Essential setup in under 5 minutes
-- 🎥 **Video Tutorials:** Visual walkthroughs for each feature  
-- 📚 **User Manual:** Complete feature documentation
-- 🔧 **Developer Docs:** API reference and customization guide
-
-### Community Support  
-- 💬 **GitHub Issues:** Report bugs and request features
-- 🏠 **WordPress.org Support:** Community-driven help forum
-- 📧 **Documentation:** Comprehensive guides and examples
-- 🤝 **Contributing:** Help improve Editorial.io for everyone
-
-## 📈 Roadmap
-
-### Version 1.0 (Shipped)
-- **WordPress Abilities API:** 14 registered abilities for AI agents, command palette, and external tools (WP 6.9+)
-- **Complete Editorial Workflow:** Staged revisions, checklist, scheduling, timeline, diffs, media tracking
-
-### Version 1.1 (Planned)
-- **AI Content Analysis:** Automated content quality scoring
-- **Advanced Scheduling:** Editorial calendar with drag-drop scheduling
-- **Notification System:** Email/Slack integration for workflow events
-- **Bulk Actions:** Manage multiple staged revisions simultaneously
-
-### Version 2.0 (Future)
-- **Custom Editorial Roles:** Dedicated Reporter, Editor, Managing Editor capabilities
-- **Team Management:** Advanced user roles and workflow assignment
-- **Analytics Integration:** Content performance-based recommendations
-- **Third-party Integrations:** CRM, marketing, and analytics platform connections
-
-## 📄 License & Credits
-
-**License:** GPL v2 or later - use freely in personal and commercial projects
-
-**Built by merging and enhancing:**
-- Rewrites plugin concepts (staged revisions, publication workflow)
-- Edit Ledger plugin concepts (revision timeline, visual diffs)
-
-**Special thanks:** WordPress core team and the plugin development community
-
----
-
-**Current Version:** 1.0.0  
-**Last Updated:** February 2026  
-**Support:** Create an issue on [GitHub](https://github.com/alansmodic/editorial-io/issues)
+GPL-2.0-or-later

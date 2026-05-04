@@ -1,8 +1,8 @@
 <?php
 /**
- * Staged Revisions feature for Editorial.io
+ * Staged Revisions feature for Masthead
  *
- * @package EditorialIO
+ * @package Masthead
  */
 
 if ( ! defined( 'ABSPATH' ) ) {
@@ -10,23 +10,23 @@ if ( ! defined( 'ABSPATH' ) ) {
 }
 
 /**
- * Class Editorial_IO_Staged_Revisions
+ * Class Masthead_Staged_Revisions
  *
  * Handles staged revisions functionality - save changes without immediately publishing.
  */
-class Editorial_IO_Staged_Revisions {
+class Masthead_Staged_Revisions {
 
 	/**
 	 * Singleton instance.
 	 *
-	 * @var Editorial_IO_Staged_Revisions|null
+	 * @var Masthead_Staged_Revisions|null
 	 */
 	private static $instance = null;
 
 	/**
 	 * Get singleton instance.
 	 *
-	 * @return Editorial_IO_Staged_Revisions
+	 * @return Masthead_Staged_Revisions
 	 */
 	public static function get_instance() {
 		if ( null === self::$instance ) {
@@ -40,7 +40,7 @@ class Editorial_IO_Staged_Revisions {
 	 */
 	private function __construct() {
 		add_action( 'init', array( $this, 'register_post_status' ) );
-		add_action( 'editorial_io_cleanup', array( $this, 'cleanup_old_staged_revisions' ) );
+		add_action( 'masthead_cleanup', array( $this, 'cleanup_old_staged_revisions' ) );
 		add_filter( 'wp_save_post_revision_post_has_changed', array( $this, 'protect_staged_revisions' ), 10, 3 );
 	}
 
@@ -49,7 +49,7 @@ class Editorial_IO_Staged_Revisions {
 	 */
 	public function register_post_status() {
 		register_post_status( 'staged', array(
-			'label'                     => _x( 'Staged', 'post status', 'editorial-io' ),
+			'label'                     => _x( 'Staged', 'post status', 'masthead' ),
 			'public'                    => false,
 			'internal'                  => true,
 			'exclude_from_search'       => true,
@@ -58,7 +58,7 @@ class Editorial_IO_Staged_Revisions {
 			'label_count'               => _n_noop(
 				'Staged <span class="count">(%s)</span>',
 				'Staged <span class="count">(%s)</span>',
-				'editorial-io'
+				'masthead'
 			),
 		) );
 	}
@@ -74,11 +74,11 @@ class Editorial_IO_Staged_Revisions {
 	public static function create( $post_id, $post_data, $meta_data = array() ) {
 		$post = get_post( $post_id );
 		if ( ! $post ) {
-			return new WP_Error( 'invalid_post', __( 'Post not found.', 'editorial-io' ) );
+			return new WP_Error( 'invalid_post', __( 'Post not found.', 'masthead' ) );
 		}
 
-		if ( ! Editorial_IO::post_type_supports_editorial( $post->post_type ) ) {
-			return new WP_Error( 'unsupported_post_type', __( 'Post type does not support staged revisions.', 'editorial-io' ) );
+		if ( ! Masthead::post_type_supports_editorial( $post->post_type ) ) {
+			return new WP_Error( 'unsupported_post_type', __( 'Post type does not support staged revisions.', 'masthead' ) );
 		}
 
 		// Check if there's already a staged revision — update it in place.
@@ -108,7 +108,7 @@ class Editorial_IO_Staged_Revisions {
 			}
 
 			/** This action is documented below. */
-			do_action( 'editorial_io_staged_revision_created', $revision_id, $post_id, $post_data, $meta_data );
+			do_action( 'masthead_staged_revision_created', $revision_id, $post_id, $post_data, $meta_data );
 
 			return $revision_id;
 		}
@@ -152,7 +152,7 @@ class Editorial_IO_Staged_Revisions {
 		 * @param array   $post_data   The post data.
 		 * @param array   $meta_data   The meta data.
 		 */
-		do_action( 'editorial_io_staged_revision_created', $revision_id, $post_id, $post_data, $meta_data );
+		do_action( 'masthead_staged_revision_created', $revision_id, $post_id, $post_data, $meta_data );
 
 		return $revision_id;
 	}
@@ -213,6 +213,8 @@ class Editorial_IO_Staged_Revisions {
 			'page'     => 1,
 		);
 		$args = wp_parse_args( $args, $defaults );
+		$args['per_page'] = max( 1, absint( $args['per_page'] ) );
+		$args['page'] = max( 1, absint( $args['page'] ) );
 
 		$where_clauses = array(
 			"r.post_type = 'revision'",
@@ -274,19 +276,19 @@ class Editorial_IO_Staged_Revisions {
 	public static function publish( $revision_id ) {
 		$revision = self::get_by_id( $revision_id );
 		if ( ! $revision ) {
-			return new WP_Error( 'revision_not_found', __( 'Staged revision not found.', 'editorial-io' ) );
+			return new WP_Error( 'revision_not_found', __( 'Staged revision not found.', 'masthead' ) );
 		}
 
 		$post_id = $revision->post_parent;
 		$post = get_post( $post_id );
 		if ( ! $post ) {
-			return new WP_Error( 'post_not_found', __( 'Parent post not found.', 'editorial-io' ) );
+			return new WP_Error( 'post_not_found', __( 'Parent post not found.', 'masthead' ) );
 		}
 
 		// Restore the parent post from the staged revision using core's revision restore.
 		$result = wp_restore_post_revision( $revision->revision_id );
 		if ( ! $result || is_wp_error( $result ) ) {
-			return is_wp_error( $result ) ? $result : new WP_Error( 'publish_failed', __( 'Failed to publish staged revision.', 'editorial-io' ) );
+			return is_wp_error( $result ) ? $result : new WP_Error( 'publish_failed', __( 'Failed to publish staged revision.', 'masthead' ) );
 		}
 
 		// Clean up staged revision.
@@ -298,7 +300,7 @@ class Editorial_IO_Staged_Revisions {
 		 * @param int $post_id     The post ID.
 		 * @param int $revision_id The revision ID.
 		 */
-		do_action( 'editorial_io_staged_revision_published', $post_id, $revision_id );
+		do_action( 'masthead_staged_revision_published', $post_id, $revision_id );
 
 		return $post_id;
 	}
@@ -312,7 +314,7 @@ class Editorial_IO_Staged_Revisions {
 	public static function approve( $revision_id ) {
 		$revision = self::get_by_id( $revision_id );
 		if ( ! $revision ) {
-			return new WP_Error( 'revision_not_found', __( 'Staged revision not found.', 'editorial-io' ) );
+			return new WP_Error( 'revision_not_found', __( 'Staged revision not found.', 'masthead' ) );
 		}
 
 		update_metadata( 'post', $revision_id, '_editorial_staged_status', 'approved' );
@@ -322,7 +324,7 @@ class Editorial_IO_Staged_Revisions {
 		 *
 		 * @param int $revision_id The revision ID.
 		 */
-		do_action( 'editorial_io_staged_revision_approved', $revision_id );
+		do_action( 'masthead_staged_revision_approved', $revision_id );
 
 		return true;
 	}
@@ -336,13 +338,13 @@ class Editorial_IO_Staged_Revisions {
 	public static function reject( $revision_id ) {
 		$revision = self::get_by_id( $revision_id );
 		if ( ! $revision ) {
-			return new WP_Error( 'revision_not_found', __( 'Staged revision not found.', 'editorial-io' ) );
+			return new WP_Error( 'revision_not_found', __( 'Staged revision not found.', 'masthead' ) );
 		}
 
 		update_metadata( 'post', $revision_id, '_editorial_staged_status', 'rejected' );
 
 		// Clear any scheduled publishing for this revision.
-		wp_clear_scheduled_hook( 'editorial_io_publish_staged', array( $revision_id ) );
+		wp_clear_scheduled_hook( 'masthead_publish_staged', array( $revision_id ) );
 		delete_metadata( 'post', $revision_id, '_editorial_staged_publish_date' );
 
 		/**
@@ -350,7 +352,7 @@ class Editorial_IO_Staged_Revisions {
 		 *
 		 * @param int $revision_id The revision ID.
 		 */
-		do_action( 'editorial_io_staged_revision_rejected', $revision_id );
+		do_action( 'masthead_staged_revision_rejected', $revision_id );
 
 		return true;
 	}
@@ -364,7 +366,7 @@ class Editorial_IO_Staged_Revisions {
 	public static function discard( $revision_id ) {
 		$revision = self::get_by_id( $revision_id );
 		if ( ! $revision ) {
-			return new WP_Error( 'revision_not_found', __( 'Staged revision not found.', 'editorial-io' ) );
+			return new WP_Error( 'revision_not_found', __( 'Staged revision not found.', 'masthead' ) );
 		}
 
 		$post_id = $revision->post_parent;
@@ -372,7 +374,7 @@ class Editorial_IO_Staged_Revisions {
 		// Delete the revision.
 		$result = wp_delete_post( $revision_id, true );
 		if ( ! $result ) {
-			return new WP_Error( 'delete_failed', __( 'Failed to delete staged revision.', 'editorial-io' ) );
+			return new WP_Error( 'delete_failed', __( 'Failed to delete staged revision.', 'masthead' ) );
 		}
 
 		// Clean up parent post meta.
@@ -384,7 +386,7 @@ class Editorial_IO_Staged_Revisions {
 		 * @param int $post_id     The post ID.
 		 * @param int $revision_id The revision ID.
 		 */
-		do_action( 'editorial_io_staged_revision_discarded', $post_id, $revision_id );
+		do_action( 'masthead_staged_revision_discarded', $post_id, $revision_id );
 
 		return true;
 	}
@@ -399,21 +401,37 @@ class Editorial_IO_Staged_Revisions {
 	public static function schedule( $revision_id, $publish_date ) {
 		$revision = self::get_by_id( $revision_id );
 		if ( ! $revision ) {
-			return new WP_Error( 'revision_not_found', __( 'Staged revision not found.', 'editorial-io' ) );
+			return new WP_Error( 'revision_not_found', __( 'Staged revision not found.', 'masthead' ) );
 		}
 
 		// Validate date.
-		$timestamp = strtotime( $publish_date );
-		if ( ! $timestamp || $timestamp <= time() ) {
-			return new WP_Error( 'invalid_date', __( 'Invalid publish date. Date must be in the future.', 'editorial-io' ) );
+		if ( empty( $publish_date ) ) {
+			return new WP_Error( 'invalid_date', __( 'Invalid publish date. Date must be in the future.', 'masthead' ) );
+		}
+
+		try {
+			$timezone = wp_timezone();
+			$datetime = new DateTimeImmutable( $publish_date, $timezone );
+			$timestamp = $datetime->getTimestamp();
+		} catch ( Exception $exception ) {
+			return new WP_Error( 'invalid_date', __( 'Invalid publish date. Date must be in the future.', 'masthead' ) );
+		}
+
+		$now_utc = current_time( 'timestamp', true );
+		if ( ! $timestamp || $timestamp <= $now_utc ) {
+			return new WP_Error( 'invalid_date', __( 'Invalid publish date. Date must be in the future.', 'masthead' ) );
 		}
 
 		// Update revision meta.
-		update_metadata( 'post', $revision_id, '_editorial_staged_publish_date', $publish_date );
+		$publish_date_mysql = wp_date( 'Y-m-d H:i:s', $timestamp, $timezone );
+		update_metadata( 'post', $revision_id, '_editorial_staged_publish_date', $publish_date_mysql );
 		update_metadata( 'post', $revision_id, '_editorial_staged_status', 'scheduled' );
 
+		// Clear any existing scheduled event for this revision to avoid duplicates.
+		wp_clear_scheduled_hook( 'masthead_publish_staged', array( $revision_id ) );
+
 		// Schedule the publishing event.
-		wp_schedule_single_event( $timestamp, 'editorial_io_publish_staged', array( $revision_id ) );
+		wp_schedule_single_event( $timestamp, 'masthead_publish_staged', array( $revision_id ) );
 
 		/**
 		 * Fired after a staged revision is scheduled.
@@ -421,7 +439,7 @@ class Editorial_IO_Staged_Revisions {
 		 * @param int    $revision_id  The revision ID.
 		 * @param string $publish_date The publish date.
 		 */
-		do_action( 'editorial_io_staged_revision_scheduled', $revision_id, $publish_date );
+		do_action( 'masthead_staged_revision_scheduled', $revision_id, $publish_date );
 
 		return true;
 	}
@@ -470,7 +488,7 @@ class Editorial_IO_Staged_Revisions {
 			'excerpt'        => $revision->post_excerpt,
 			'author'         => array(
 				'id'     => (int) $revision->staged_author_id,
-				'name'   => $author ? $author->display_name : __( 'Unknown', 'editorial-io' ),
+				'name'   => $author ? $author->display_name : __( 'Unknown', 'masthead' ),
 				'avatar' => get_avatar_url( $revision->staged_author_id, array( 'size' => 48 ) ),
 			),
 			'status'         => $revision->staged_status,
@@ -517,7 +535,7 @@ class Editorial_IO_Staged_Revisions {
 	 * Clean up old staged revisions (called by cron).
 	 */
 	public function cleanup_old_staged_revisions() {
-		$settings = Editorial_IO_Settings::get_instance();
+		$settings = Masthead_Settings::get_instance();
 		if ( ! $settings->get_option( 'cleanup_old_revisions', false ) ) {
 			return;
 		}
@@ -545,7 +563,7 @@ class Editorial_IO_Staged_Revisions {
 
 		if ( ! empty( $old_revisions ) ) {
 			/* translators: %d: number of revisions */
-			error_log( sprintf( __( 'Editorial.io: Cleaned up %d old staged revisions.', 'editorial-io' ), count( $old_revisions ) ) );
+			error_log( sprintf( __( 'Masthead: Cleaned up %d old staged revisions.', 'masthead' ), count( $old_revisions ) ) );
 		}
 	}
 
@@ -591,7 +609,7 @@ class Editorial_IO_Staged_Revisions {
 		$revision = self::get( $post_id );
 
 		if ( ! $revision ) {
-			return new WP_Error( 'not_found', __( 'No staged revision found for this post.', 'editorial-io' ), array( 'status' => 404 ) );
+			return new WP_Error( 'not_found', __( 'No staged revision found for this post.', 'masthead' ), array( 'status' => 404 ) );
 		}
 
 		return rest_ensure_response( self::format_for_response( $revision ) );
@@ -614,7 +632,7 @@ class Editorial_IO_Staged_Revisions {
 		return rest_ensure_response( array(
 			'published' => true,
 			'post_id'   => $result,
-			'message'   => __( 'Staged revision published successfully.', 'editorial-io' ),
+			'message'   => __( 'Staged revision published successfully.', 'masthead' ),
 		) );
 	}
 
@@ -670,7 +688,7 @@ class Editorial_IO_Staged_Revisions {
 
 		return rest_ensure_response( array(
 			'deleted' => true,
-			'message' => __( 'Staged revision discarded.', 'editorial-io' ),
+			'message' => __( 'Staged revision discarded.', 'masthead' ),
 		) );
 	}
 }
