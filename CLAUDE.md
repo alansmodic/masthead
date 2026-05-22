@@ -38,7 +38,7 @@ npm run test:php
 npm run test:php -- --filter test_method_name
 ```
 
-**Footgun:** `package.json` (and the npm `name` field) still reference the legacy slug `editorial-io`, including the phpunit config path `/var/www/html/wp-content/plugins/editorial-io/tests/phpunit.xml.dist`. If the test command fails with a path error, that's why — either rename the slug or symlink in wp-env.
+The `test:php` script expects the plugin to be mounted at `wp-content/plugins/masthead/` inside wp-env.
 
 ## Architecture: how Masthead is wired
 
