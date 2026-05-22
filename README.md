@@ -31,7 +31,7 @@ Masthead also ships a few features not bundled in the standalone plugins:
 - **Suite Settings Screen** — configure all modules from one place
 - **Module Registry** — detect which suite plugins are active and surface their status
 - **GitHub Updater** — auto-update all suite plugins from their GitHub releases
-- **Editorial Calendar** — visual drag-and-drop publishing calendar (coming soon)
+- **[Editorial Calendar](https://github.com/alansmodic/editorial-calendar)** — visual drag-and-drop publishing calendar (separate plugin in the suite)
 
 ## Requirements
 

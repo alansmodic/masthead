@@ -1,7 +1,7 @@
 <?php
 /**
  * Plugin Name: Masthead
- * Description: The WordPress editorial suite. Bundles Edit Ledger, Rewrites, and Redline into a unified workflow with a single settings screen and cross-plugin integrations.
+ * Description: The WordPress editorial suite. Unifies Edit Ledger, Rewrites, and the WordPress AI plugin into a single admin screen with cross-plugin integrations.
  * Version: 1.1.0
  * Author: Alan Smodic
  * Requires at least: 7.0
