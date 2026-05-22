@@ -38,6 +38,79 @@
 			</table>
 		</div>
 
+		<!-- AI Status -->
+		<div class="masthead-card">
+			<h2><?php esc_html_e( 'AI Features', 'masthead' ); ?></h2>
+			<?php
+			$ai_status = Masthead_AI::get_instance()->get_status();
+			?>
+			<div class="masthead-ai-status">
+				<div class="masthead-ai-status-indicator <?php echo $ai_status['available'] ? 'masthead-ai-connected' : 'masthead-ai-disconnected'; ?>">
+					<span class="masthead-ai-dot"></span>
+					<strong><?php echo esc_html( $ai_status['message'] ); ?></strong>
+				</div>
+				<?php if ( ! $ai_status['available'] ) : ?>
+				<p class="description">
+					<?php printf(
+						/* translators: %s: URL to Connectors settings */
+						__( 'To enable AI features, <a href="%s">configure an AI provider</a> in Settings → Connectors.', 'masthead' ),
+						esc_url( admin_url( 'options-general.php?page=connectors' ) )
+					); ?>
+				</p>
+				<?php endif; ?>
+			</div>
+
+			<table class="form-table masthead-ai-features-table">
+				<tbody>
+					<tr>
+						<th><?php esc_html_e( 'Revision Summaries', 'masthead' ); ?></th>
+						<td>
+							<span class="masthead-badge <?php echo $ai_status['available'] ? 'masthead-badge-active' : 'masthead-badge-missing'; ?>">
+								<?php echo $ai_status['available'] ? esc_html__( 'Available', 'masthead' ) : esc_html__( 'Needs Provider', 'masthead' ); ?>
+							</span>
+							<p class="description"><?php esc_html_e( 'Auto-generate plain-English summaries when revisions are submitted.', 'masthead' ); ?></p>
+						</td>
+					</tr>
+					<tr>
+						<th><?php esc_html_e( 'Editorial Review', 'masthead' ); ?></th>
+						<td>
+							<span class="masthead-badge <?php echo $ai_status['available'] ? 'masthead-badge-active' : 'masthead-badge-missing'; ?>">
+								<?php echo $ai_status['available'] ? esc_html__( 'Available', 'masthead' ) : esc_html__( 'Needs Provider', 'masthead' ); ?>
+							</span>
+							<p class="description"><?php esc_html_e( 'AI-powered grammar, style, and tone analysis before publishing.', 'masthead' ); ?></p>
+						</td>
+					</tr>
+					<tr>
+						<th><?php esc_html_e( 'Headline Suggestions', 'masthead' ); ?></th>
+						<td>
+							<span class="masthead-badge <?php echo $ai_status['available'] ? 'masthead-badge-active' : 'masthead-badge-missing'; ?>">
+								<?php echo $ai_status['available'] ? esc_html__( 'Available', 'masthead' ) : esc_html__( 'Needs Provider', 'masthead' ); ?>
+							</span>
+							<p class="description"><?php esc_html_e( 'Generate alternative headline options for any post.', 'masthead' ); ?></p>
+						</td>
+					</tr>
+					<tr>
+						<th><?php esc_html_e( 'Alt Text Generation', 'masthead' ); ?></th>
+						<td>
+							<span class="masthead-badge <?php echo $ai_status['available'] ? 'masthead-badge-active' : 'masthead-badge-missing'; ?>">
+								<?php echo $ai_status['available'] ? esc_html__( 'Available', 'masthead' ) : esc_html__( 'Needs Provider', 'masthead' ); ?>
+							</span>
+							<p class="description"><?php esc_html_e( 'Automatically generate alt text for images missing descriptions.', 'masthead' ); ?></p>
+						</td>
+					</tr>
+					<tr>
+						<th><?php esc_html_e( 'Tone & Readability', 'masthead' ); ?></th>
+						<td>
+							<span class="masthead-badge <?php echo $ai_status['available'] ? 'masthead-badge-active' : 'masthead-badge-missing'; ?>">
+								<?php echo $ai_status['available'] ? esc_html__( 'Available', 'masthead' ) : esc_html__( 'Needs Provider', 'masthead' ); ?>
+							</span>
+							<p class="description"><?php esc_html_e( 'Analyze content tone, reading level, and audience fit.', 'masthead' ); ?></p>
+						</td>
+					</tr>
+				</tbody>
+			</table>
+		</div>
+
 		<!-- Cross-Plugin Integrations -->
 		<div class="masthead-card">
 			<h2><?php esc_html_e( 'Cross-Plugin Integrations', 'masthead' ); ?></h2>

@@ -613,6 +613,133 @@ class Masthead_Abilities {
 				'readonly'     => true,
 			),
 		) );
+
+		wp_register_ability( 'masthead/alt-text.generate', array(
+			'label'               => __( 'Generate Alt Text', 'masthead' ),
+			'description'         => __( 'Generate accessible alt text for an image attachment using AI.', 'masthead' ),
+			'category'            => 'masthead',
+			'callback'            => array( $this, 'ability_generate_alt_text' ),
+			'permission_callback' => function ( $input ) {
+				$attachment_id = $input['attachment_id'] ?? 0;
+				return $attachment_id && current_user_can( 'edit_post', $attachment_id );
+			},
+			'input_schema'        => array(
+				'type'       => 'object',
+				'required'   => array( 'attachment_id' ),
+				'properties' => array(
+					'attachment_id' => array(
+						'type'        => 'integer',
+						'description' => __( 'The image attachment ID.', 'masthead' ),
+					),
+					'post_context' => array(
+						'type'        => 'string',
+						'description' => __( 'Optional article context for relevance.', 'masthead' ),
+					),
+					'apply' => array(
+						'type'        => 'boolean',
+						'description' => __( 'If true, also save the generated alt text to the attachment.', 'masthead' ),
+						'default'     => false,
+					),
+				),
+			),
+			'output_schema'       => array(
+				'type'       => 'object',
+				'properties' => array(
+					'alt_text'      => array( 'type' => 'string' ),
+					'attachment_id' => array( 'type' => 'integer' ),
+					'applied'       => array( 'type' => 'boolean' ),
+					'ai_available'  => array( 'type' => 'boolean' ),
+				),
+			),
+			'meta'                => array( 'show_in_rest' => true ),
+		) );
+
+		wp_register_ability( 'masthead/alt-text.scan', array(
+			'label'               => __( 'Scan for Missing Alt Text', 'masthead' ),
+			'description'         => __( 'Find images in a post that are missing alt text.', 'masthead' ),
+			'category'            => 'masthead',
+			'callback'            => array( $this, 'ability_scan_missing_alt' ),
+			'permission_callback' => function ( $input ) {
+				$post_id = $input['post_id'] ?? 0;
+				return $post_id && current_user_can( 'edit_post', $post_id );
+			},
+			'input_schema'        => array(
+				'type'       => 'object',
+				'required'   => array( 'post_id' ),
+				'properties' => array(
+					'post_id' => array(
+						'type'        => 'integer',
+						'description' => __( 'The post ID to scan for missing alt text.', 'masthead' ),
+					),
+					'auto_generate' => array(
+						'type'        => 'boolean',
+						'description' => __( 'If true, auto-generate and apply alt text for all missing images.', 'masthead' ),
+						'default'     => false,
+					),
+				),
+			),
+			'output_schema'       => array(
+				'type'       => 'object',
+				'properties' => array(
+					'missing_count' => array( 'type' => 'integer' ),
+					'images'        => array(
+						'type'  => 'array',
+						'items' => array(
+							'type'       => 'object',
+							'properties' => array(
+								'attachment_id' => array( 'type' => 'integer' ),
+								'filename'      => array( 'type' => 'string' ),
+								'generated_alt' => array( 'type' => 'string' ),
+								'applied'       => array( 'type' => 'boolean' ),
+							),
+						),
+					),
+					'post_id'       => array( 'type' => 'integer' ),
+					'ai_available'  => array( 'type' => 'boolean' ),
+				),
+			),
+			'meta'                => array( 'show_in_rest' => true ),
+		) );
+
+		wp_register_ability( 'masthead/tone.analyze', array(
+			'label'               => __( 'Analyze Tone & Readability', 'masthead' ),
+			'description'         => __( 'Analyze content tone, reading level, audience fit, and provide improvement suggestions.', 'masthead' ),
+			'category'            => 'masthead',
+			'callback'            => array( $this, 'ability_analyze_tone' ),
+			'permission_callback' => function ( $input ) {
+				$post_id = $input['post_id'] ?? 0;
+				return $post_id && current_user_can( 'edit_post', $post_id );
+			},
+			'input_schema'        => array(
+				'type'       => 'object',
+				'required'   => array( 'post_id' ),
+				'properties' => array(
+					'post_id' => array(
+						'type'        => 'integer',
+						'description' => __( 'The post ID to analyze.', 'masthead' ),
+					),
+				),
+			),
+			'output_schema'       => array(
+				'type'       => 'object',
+				'properties' => array(
+					'tone'                    => array( 'type' => 'string' ),
+					'reading_level'           => array( 'type' => 'string' ),
+					'grade_level'             => array( 'type' => 'number' ),
+					'audience'                => array( 'type' => 'string' ),
+					'clarity_score'           => array( 'type' => 'number' ),
+					'engagement_score'        => array( 'type' => 'number' ),
+					'suggestions'             => array( 'type' => 'array', 'items' => array( 'type' => 'string' ) ),
+					'word_count'              => array( 'type' => 'integer' ),
+					'sentence_count'          => array( 'type' => 'integer' ),
+					'paragraph_count'         => array( 'type' => 'integer' ),
+					'avg_words_per_sentence'  => array( 'type' => 'number' ),
+					'post_id'                 => array( 'type' => 'integer' ),
+					'ai_available'            => array( 'type' => 'boolean' ),
+				),
+			),
+			'meta'                => array( 'show_in_rest' => true ),
+		) );
 	}
 
 	/**
@@ -1373,5 +1500,133 @@ class Masthead_Abilities {
 	 */
 	public function ability_ai_status( $input ) {
 		return Masthead_AI::get_instance()->get_status();
+	}
+
+	/**
+	 * Callback: Generate alt text for an image.
+	 *
+	 * @param array $input Ability input.
+	 * @return array|WP_Error
+	 */
+	public function ability_generate_alt_text( $input ) {
+		$ai = Masthead_AI::get_instance();
+
+		if ( ! $ai->is_available() ) {
+			return array(
+				'alt_text'      => '',
+				'attachment_id' => $input['attachment_id'],
+				'applied'       => false,
+				'ai_available'  => false,
+			);
+		}
+
+		$post_context = $input['post_context'] ?? '';
+		$alt_text = $ai->generate_alt_text( $input['attachment_id'], $post_context );
+
+		if ( is_wp_error( $alt_text ) ) {
+			return $alt_text;
+		}
+
+		$applied = false;
+		if ( ! empty( $input['apply'] ) ) {
+			update_post_meta( $input['attachment_id'], '_wp_attachment_image_alt', sanitize_text_field( $alt_text ) );
+			$applied = true;
+		}
+
+		return array(
+			'alt_text'      => $alt_text,
+			'attachment_id' => $input['attachment_id'],
+			'applied'       => $applied,
+			'ai_available'  => true,
+		);
+	}
+
+	/**
+	 * Callback: Scan post for images missing alt text.
+	 *
+	 * @param array $input Ability input.
+	 * @return array|WP_Error
+	 */
+	public function ability_scan_missing_alt( $input ) {
+		$ai = Masthead_AI::get_instance();
+		$missing_ids = $ai->find_images_missing_alt( $input['post_id'] );
+
+		$post = get_post( $input['post_id'] );
+		$post_context = $post ? mb_substr( wp_strip_all_tags( $post->post_content ), 0, 500 ) : '';
+
+		$images = array();
+		foreach ( $missing_ids as $att_id ) {
+			$item = array(
+				'attachment_id' => $att_id,
+				'filename'      => basename( get_attached_file( $att_id ) ),
+				'generated_alt' => '',
+				'applied'       => false,
+			);
+
+			if ( ! empty( $input['auto_generate'] ) && $ai->is_available() ) {
+				$alt = $ai->generate_alt_text( $att_id, $post_context );
+				if ( ! is_wp_error( $alt ) ) {
+					$item['generated_alt'] = $alt;
+					$item['applied'] = true;
+					update_post_meta( $att_id, '_wp_attachment_image_alt', sanitize_text_field( $alt ) );
+				}
+			}
+
+			$images[] = $item;
+		}
+
+		return array(
+			'missing_count' => count( $missing_ids ),
+			'images'        => $images,
+			'post_id'       => $input['post_id'],
+			'ai_available'  => $ai->is_available(),
+		);
+	}
+
+	/**
+	 * Callback: Analyze tone and readability.
+	 *
+	 * @param array $input Ability input.
+	 * @return array|WP_Error
+	 */
+	public function ability_analyze_tone( $input ) {
+		$post = get_post( $input['post_id'] );
+		if ( ! $post ) {
+			return new WP_Error( 'not_found', __( 'Post not found.', 'masthead' ) );
+		}
+
+		$ai = Masthead_AI::get_instance();
+		if ( ! $ai->is_available() ) {
+			return array(
+				'tone'           => '',
+				'reading_level'  => '',
+				'grade_level'    => 0,
+				'audience'       => '',
+				'clarity_score'  => 0,
+				'engagement_score' => 0,
+				'suggestions'    => array(),
+				'word_count'     => str_word_count( wp_strip_all_tags( $post->post_content ) ),
+				'sentence_count' => 0,
+				'paragraph_count' => 0,
+				'avg_words_per_sentence' => 0,
+				'post_id'        => $post->ID,
+				'ai_available'   => false,
+			);
+		}
+
+		$analysis = $ai->analyze_tone( $post->post_content, $post->post_title );
+
+		if ( is_wp_error( $analysis ) ) {
+			return $analysis;
+		}
+
+		$analysis['post_id']      = $post->ID;
+		$analysis['ai_available'] = true;
+
+		// Cache the analysis.
+		update_post_meta( $post->ID, '_masthead_tone_analysis', $analysis );
+		update_post_meta( $post->ID, '_masthead_tone_analysis_date', current_time( 'mysql' ) );
+
+		return $analysis;
 	}
 }

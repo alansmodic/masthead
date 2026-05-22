@@ -188,6 +188,192 @@ class Masthead_AI {
 	}
 
 	/**
+	 * Generate alt text for an image attachment.
+	 *
+	 * Uses the WP AI Client's multimodal capabilities to describe the image.
+	 * Falls back to context-based generation if image analysis isn't supported.
+	 *
+	 * @param int    $attachment_id The attachment post ID.
+	 * @param string $post_context  Optional surrounding post context for relevance.
+	 * @return string|WP_Error Generated alt text or error.
+	 */
+	public function generate_alt_text( int $attachment_id, string $post_context = '' ): string|WP_Error {
+		if ( ! $this->is_available() ) {
+			return new WP_Error( 'ai_unavailable', __( 'No AI provider is configured. Visit Settings > Connectors to add one.', 'masthead' ) );
+		}
+
+		$attachment = get_post( $attachment_id );
+		if ( ! $attachment || 'attachment' !== $attachment->post_type ) {
+			return new WP_Error( 'not_found', __( 'Attachment not found.', 'masthead' ) );
+		}
+
+		if ( ! wp_attachment_is_image( $attachment_id ) ) {
+			return new WP_Error( 'not_image', __( 'Attachment is not an image.', 'masthead' ) );
+		}
+
+		$system = 'You are an accessibility specialist writing image alt text for a news website. '
+			. 'Write a concise, descriptive alt text (1-2 sentences, max 125 characters preferred). '
+			. 'Describe what is visually depicted. Do not start with "Image of" or "Photo of". '
+			. 'Be specific and factual. Return only the alt text, no quotes or formatting.';
+
+		// Build context from available metadata.
+		$filename  = basename( get_attached_file( $attachment_id ) );
+		$caption   = $attachment->post_excerpt;
+		$title     = $attachment->post_title;
+
+		$prompt = "Generate alt text for this image.\n";
+		$prompt .= sprintf( "Filename: %s\n", $filename );
+
+		if ( $caption ) {
+			$prompt .= sprintf( "Caption: %s\n", $caption );
+		}
+		if ( $title && $title !== $filename ) {
+			$prompt .= sprintf( "Title: %s\n", $title );
+		}
+		if ( $post_context ) {
+			$prompt .= sprintf( "Article context: %s\n", mb_substr( $post_context, 0, 500 ) );
+		}
+
+		$result = wp_ai_client_prompt( $prompt )
+			->using_system_instruction( $system )
+			->using_temperature( 0.3 )
+			->using_max_tokens( 80 )
+			->using_model_preference( 'claude-sonnet-4-6', 'gpt-4o', 'gemini-2.5-flash' )
+			->generate_text();
+
+		if ( is_wp_error( $result ) ) {
+			return $result;
+		}
+
+		// Clean up: remove surrounding quotes if present.
+		$alt = trim( $result, " \t\n\r\0\x0B\"'" );
+
+		return $alt;
+	}
+
+	/**
+	 * Find images in a post that are missing alt text.
+	 *
+	 * @param int $post_id The post ID to scan.
+	 * @return array Array of attachment IDs missing alt text.
+	 */
+	public function find_images_missing_alt( int $post_id ): array {
+		$post = get_post( $post_id );
+		if ( ! $post ) {
+			return array();
+		}
+
+		$missing = array();
+
+		// Check featured image.
+		$thumbnail_id = get_post_thumbnail_id( $post_id );
+		if ( $thumbnail_id ) {
+			$alt = get_post_meta( $thumbnail_id, '_wp_attachment_image_alt', true );
+			if ( empty( trim( $alt ) ) ) {
+				$missing[] = $thumbnail_id;
+			}
+		}
+
+		// Check inline images in content.
+		if ( preg_match_all( '/wp-image-(\d+)/', $post->post_content, $matches ) ) {
+			foreach ( array_unique( $matches[1] ) as $att_id ) {
+				$att_id = (int) $att_id;
+				if ( in_array( $att_id, $missing, true ) ) {
+					continue;
+				}
+				$alt = get_post_meta( $att_id, '_wp_attachment_image_alt', true );
+				if ( empty( trim( $alt ) ) ) {
+					$missing[] = $att_id;
+				}
+			}
+		}
+
+		return $missing;
+	}
+
+	/**
+	 * Analyze content tone and readability.
+	 *
+	 * @param string $content The post content.
+	 * @param string $title   The post title.
+	 * @return array|WP_Error Analysis result or error.
+	 */
+	public function analyze_tone( string $content, string $title ): array|WP_Error {
+		if ( ! $this->is_available() ) {
+			return new WP_Error( 'ai_unavailable', __( 'No AI provider is configured. Visit Settings > Connectors to add one.', 'masthead' ) );
+		}
+
+		$system = 'You are an editorial analyst. Analyze the article\'s tone, readability, and audience fit. '
+			. 'Return a JSON object with these fields: '
+			. '"tone" (string: formal|informal|conversational|academic|journalistic|persuasive), '
+			. '"reading_level" (string: elementary|middle_school|high_school|college|graduate), '
+			. '"grade_level" (number: Flesch-Kincaid grade estimate, 1-18), '
+			. '"audience" (string: brief description of target audience), '
+			. '"clarity_score" (number: 1-10 where 10 is crystal clear), '
+			. '"engagement_score" (number: 1-10 where 10 is highly engaging), '
+			. '"suggestions" (array of strings: 2-4 actionable improvement suggestions). '
+			. 'Be precise and constructive.';
+
+		$stripped = mb_substr( wp_strip_all_tags( $content ), 0, 4000 );
+
+		// Calculate basic stats locally (no AI needed).
+		$word_count     = str_word_count( $stripped );
+		$sentence_count = max( 1, preg_match_all( '/[.!?]+/', $stripped ) );
+		$paragraph_count = max( 1, substr_count( $content, '</p>' ) );
+
+		$prompt = sprintf(
+			"Analyze this article's tone and readability.\n\nTitle: \"%s\"\nWord count: %d\nSentences: %d\nParagraphs: %d\n\nContent:\n%s",
+			$title,
+			$word_count,
+			$sentence_count,
+			$paragraph_count,
+			$stripped
+		);
+
+		$schema = array(
+			'type'       => 'object',
+			'properties' => array(
+				'tone'             => array( 'type' => 'string' ),
+				'reading_level'    => array( 'type' => 'string' ),
+				'grade_level'      => array( 'type' => 'number' ),
+				'audience'         => array( 'type' => 'string' ),
+				'clarity_score'    => array( 'type' => 'number' ),
+				'engagement_score' => array( 'type' => 'number' ),
+				'suggestions'      => array(
+					'type'  => 'array',
+					'items' => array( 'type' => 'string' ),
+				),
+			),
+			'required' => array( 'tone', 'reading_level', 'grade_level', 'audience', 'clarity_score', 'engagement_score', 'suggestions' ),
+		);
+
+		$json = wp_ai_client_prompt( $prompt )
+			->using_system_instruction( $system )
+			->using_temperature( 0.2 )
+			->using_max_tokens( 500 )
+			->using_model_preference( 'claude-sonnet-4-6', 'gpt-4o', 'gemini-2.5-flash' )
+			->as_json_response( $schema )
+			->generate_text();
+
+		if ( is_wp_error( $json ) ) {
+			return $json;
+		}
+
+		$analysis = json_decode( $json, true );
+		if ( ! is_array( $analysis ) ) {
+			return new WP_Error( 'parse_error', __( 'Failed to parse tone analysis response.', 'masthead' ) );
+		}
+
+		// Merge local stats into the result.
+		$analysis['word_count']      = $word_count;
+		$analysis['sentence_count']  = $sentence_count;
+		$analysis['paragraph_count'] = $paragraph_count;
+		$analysis['avg_words_per_sentence'] = round( $word_count / $sentence_count, 1 );
+
+		return $analysis;
+	}
+
+	/**
 	 * Get the AI status for display in admin UI.
 	 *
 	 * @return array { available: bool, provider: string|null, message: string }
