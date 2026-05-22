@@ -29,11 +29,12 @@ class Masthead_Module_Registry {
 			'description' => 'Staged revisions, publication checklist, and scheduled publishing.',
 			'repo'        => 'https://github.com/alansmodic/rewrites',
 		],
-		'redline' => [
-			'file'        => 'redline/redline.php',
-			'label'       => 'Masthead: Redline',
-			'description' => 'AI-powered editorial review with inline Notes on flagged blocks.',
-			'repo'        => 'https://github.com/alansmodic/redline',
+		'wordpress-ai' => [
+			'file'        => null,
+			'label'       => 'WP AI Client',
+			'description' => 'WordPress 7.0 built-in AI features. Configure providers at Settings → Connectors.',
+			'repo'        => null,
+			'builtin'     => true,
 		],
 		'editorial-calendar' => [
 			'file'        => 'editorial-calendar/editorial-calendar.php',
@@ -59,10 +60,22 @@ class Masthead_Module_Registry {
 		if ( ! isset( self::MODULES[ $module ] ) ) {
 			return false;
 		}
+
+		$meta = self::MODULES[ $module ];
+
+		// Built-in modules (e.g., WP AI Client) are active if their API exists.
+		if ( ! empty( $meta['builtin'] ) ) {
+			return $this->is_builtin_available( $module );
+		}
+
+		if ( ! $meta['file'] ) {
+			return false;
+		}
+
 		if ( ! function_exists( 'is_plugin_active' ) ) {
 			require_once ABSPATH . 'wp-admin/includes/plugin.php';
 		}
-		return is_plugin_active( self::MODULES[ $module ]['file'] );
+		return is_plugin_active( $meta['file'] );
 	}
 
 	/**
@@ -72,7 +85,19 @@ class Masthead_Module_Registry {
 		if ( ! isset( self::MODULES[ $module ] ) ) {
 			return false;
 		}
-		return file_exists( WP_PLUGIN_DIR . '/' . self::MODULES[ $module ]['file'] );
+
+		$meta = self::MODULES[ $module ];
+
+		// Built-in modules are always "installed" on WP 7.0+.
+		if ( ! empty( $meta['builtin'] ) ) {
+			return $this->is_builtin_available( $module );
+		}
+
+		if ( ! $meta['file'] ) {
+			return false;
+		}
+
+		return file_exists( WP_PLUGIN_DIR . '/' . $meta['file'] );
 	}
 
 	/**
@@ -97,5 +122,15 @@ class Masthead_Module_Registry {
 			array_keys( self::MODULES ),
 			fn( $id ) => $this->is_active( $id )
 		) );
+	}
+
+	/**
+	 * Check if a built-in module's API is available.
+	 */
+	private function is_builtin_available( string $module ): bool {
+		return match ( $module ) {
+			'wordpress-ai' => function_exists( 'wp_ai_client_prompt' ),
+			default        => false,
+		};
 	}
 }

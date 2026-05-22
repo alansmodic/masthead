@@ -14,7 +14,9 @@
     'use strict';
 
     const { registerPlugin } = wp.plugins;
-    const { PluginSidebar, PluginSidebarMoreMenuItem } = wp.editPost;
+    // WP 7.0: PluginSidebar moved to wp.editor; fall back to wp.editPost for compat.
+    const { PluginSidebar, PluginSidebarMoreMenuItem } = wp.editor || wp.editPost;
+    const { PluginDocumentSettingPanel } = wp.editPost;
     const { useSelect, useDispatch, subscribe } = wp.data;
     const { useState, useEffect, useCallback, useRef } = wp.element;
     const {
@@ -34,7 +36,7 @@
     const apiFetch = wp.apiFetch;
 
     // Get configuration
-    const config = window.editorialIOData || {};
+    const config = window.mastheadData || {};
     const { postId, features, strings } = config;
     const checklistItems = config.config?.checklist?.items || [];
     const checklistEnabled = features?.publication_checklist && checklistItems.length > 0;
@@ -173,12 +175,12 @@
                 });
 
                 setStagedRevision(response);
-                createSuccessNotice(__('Changes saved as rewrite for review.', 'editorial-io'), {
+                createSuccessNotice(__('Changes saved as rewrite for review.', 'masthead'), {
                     type: 'snackbar',
                 });
                 setShowChecklist(false);
             } catch (err) {
-                createErrorNotice(err.message || __('Failed to save rewrite.', 'editorial-io'), {
+                createErrorNotice(err.message || __('Failed to save rewrite.', 'masthead'), {
                     type: 'snackbar',
                 });
             } finally {
@@ -221,12 +223,12 @@
                 });
 
                 setStagedRevision(response);
-                setSuccess(__('Changes saved without publishing.', 'editorial-io'));
-                createSuccessNotice(__('Changes saved as staged revision.', 'editorial-io'), {
+                setSuccess(__('Changes saved without publishing.', 'masthead'));
+                createSuccessNotice(__('Changes saved as staged revision.', 'masthead'), {
                     type: 'snackbar',
                 });
             } catch (err) {
-                setError(err.message || __('Failed to save staged revision.', 'editorial-io'));
+                setError(err.message || __('Failed to save staged revision.', 'masthead'));
             } finally {
                 setIsSaving(false);
             }
@@ -238,7 +240,7 @@
         const handlePublish = async () => {
             if (!stagedRevision) return;
 
-            if (!confirm(__('Are you sure you want to publish these changes now?', 'editorial-io'))) {
+            if (!confirm(__('Are you sure you want to publish these changes now?', 'masthead'))) {
                 return;
             }
 
@@ -254,13 +256,13 @@
                 setStagedRevision(null);
                 setNotes('');
                 setScheduleDate(null);
-                createSuccessNotice(__('Staged changes published successfully.', 'editorial-io'), {
+                createSuccessNotice(__('Staged changes published successfully.', 'masthead'), {
                     type: 'snackbar',
                 });
 
                 window.location.reload();
             } catch (err) {
-                setError(err.message || __('Failed to publish staged revision.', 'editorial-io'));
+                setError(err.message || __('Failed to publish staged revision.', 'masthead'));
             } finally {
                 setIsPublishing(false);
             }
@@ -290,11 +292,11 @@
                 });
                 setStagedRevision(updated);
                 setShowScheduler(false);
-                createSuccessNotice(__('Staged revision scheduled for publishing.', 'editorial-io'), {
+                createSuccessNotice(__('Staged revision scheduled for publishing.', 'masthead'), {
                     type: 'snackbar',
                 });
             } catch (err) {
-                setError(err.message || __('Failed to schedule staged revision.', 'editorial-io'));
+                setError(err.message || __('Failed to schedule staged revision.', 'masthead'));
             } finally {
                 setIsScheduling(false);
             }
@@ -306,7 +308,7 @@
         const handleDiscard = async () => {
             if (!stagedRevision) return;
 
-            if (!confirm(__('Are you sure you want to discard these changes? This cannot be undone.', 'editorial-io'))) {
+            if (!confirm(__('Are you sure you want to discard these changes? This cannot be undone.', 'masthead'))) {
                 return;
             }
 
@@ -319,11 +321,11 @@
                 setStagedRevision(null);
                 setNotes('');
                 setScheduleDate(null);
-                createSuccessNotice(__('Staged revision discarded.', 'editorial-io'), {
+                createSuccessNotice(__('Staged revision discarded.', 'masthead'), {
                     type: 'snackbar',
                 });
             } catch (err) {
-                setError(err.message || __('Failed to discard staged revision.', 'editorial-io'));
+                setError(err.message || __('Failed to discard staged revision.', 'masthead'));
             }
         };
 
@@ -341,10 +343,10 @@
                 scheduled: '#2271b1',
             };
             const statusLabels = {
-                pending: __('Pending Review', 'editorial-io'),
-                approved: __('Approved', 'editorial-io'),
-                rejected: __('Rejected', 'editorial-io'),
-                scheduled: __('Scheduled', 'editorial-io'),
+                pending: __('Pending Review', 'masthead'),
+                approved: __('Approved', 'masthead'),
+                rejected: __('Rejected', 'masthead'),
+                scheduled: __('Scheduled', 'masthead'),
             };
 
             return (
@@ -386,15 +388,15 @@
                 )}
 
                 {!isLoading && features.staged_revisions && (
-                    <PanelBody title={__('Save Without Publishing', 'editorial-io')} initialOpen={true}>
+                    <PanelBody title={__('Save Without Publishing', 'masthead')} initialOpen={true}>
                         <p>
-                            {__('Save your changes without making them live immediately. An editor can review and approve before publishing.', 'editorial-io')}
+                            {__('Save your changes without making them live immediately. An editor can review and approve before publishing.', 'masthead')}
                         </p>
                         <TextareaControl
-                            label={__('Notes for reviewers', 'editorial-io')}
+                            label={__('Notes for reviewers', 'masthead')}
                             value={notes}
                             onChange={setNotes}
-                            placeholder={__('Describe your changes...', 'editorial-io')}
+                            placeholder={__('Describe your changes...', 'masthead')}
                         />
                         <Button
                             variant="secondary"
@@ -404,26 +406,26 @@
                             style={{ width: '100%' }}
                         >
                             {stagedRevision
-                                ? __('Update Staged Changes', 'editorial-io')
-                                : __('Save as Rewrite', 'editorial-io')}
+                                ? __('Update Staged Changes', 'masthead')
+                                : __('Save as Rewrite', 'masthead')}
                         </Button>
                     </PanelBody>
                 )}
 
                 {!isLoading && stagedRevision && (
-                    <PanelBody title={__('Pending Changes', 'editorial-io')} initialOpen={true}>
+                    <PanelBody title={__('Pending Changes', 'masthead')} initialOpen={true}>
                         <Flex justify="space-between" style={{ marginBottom: '12px' }}>
-                            <FlexItem>{__('Status:', 'editorial-io')}</FlexItem>
+                            <FlexItem>{__('Status:', 'masthead')}</FlexItem>
                             <FlexItem>{getStatusBadge()}</FlexItem>
                         </Flex>
                         <p>
-                            {__('Last saved:', 'editorial-io')}{' '}
+                            {__('Last saved:', 'masthead')}{' '}
                             <strong>{new Date(stagedRevision.modified).toLocaleString()}</strong>
                         </p>
 
                         {stagedRevision.scheduled_date && (
                             <Notice status="warning" isDismissible={false}>
-                                {__('Scheduled for:', 'editorial-io')}{' '}
+                                {__('Scheduled for:', 'masthead')}{' '}
                                 {new Date(stagedRevision.scheduled_date).toLocaleString()}
                             </Notice>
                         )}
@@ -435,8 +437,8 @@
                                 style={{ width: '100%', marginTop: '12px' }}
                             >
                                 {stagedRevision.scheduled_date
-                                    ? __('Change Schedule', 'editorial-io')
-                                    : __('Schedule Publication', 'editorial-io')}
+                                    ? __('Change Schedule', 'masthead')
+                                    : __('Schedule Publication', 'masthead')}
                             </Button>
                         )}
 
@@ -455,7 +457,7 @@
                                             isBusy={isScheduling}
                                             disabled={isScheduling || !scheduleDate}
                                         >
-                                            {__('Schedule', 'editorial-io')}
+                                            {__('Schedule', 'masthead')}
                                         </Button>
                                     </FlexItem>
                                     <FlexItem>
@@ -463,7 +465,7 @@
                                             variant="tertiary"
                                             onClick={() => setShowScheduler(false)}
                                         >
-                                            {__('Cancel', 'editorial-io')}
+                                            {__('Cancel', 'masthead')}
                                         </Button>
                                     </FlexItem>
                                 </Flex>
@@ -479,7 +481,7 @@
                                     disabled={isPublishing || stagedRevision.status === 'rejected'}
                                     style={{ width: '100%' }}
                                 >
-                                    {__('Publish Now', 'editorial-io')}
+                                    {__('Publish Now', 'masthead')}
                                 </Button>
                                 <Button
                                     variant="tertiary"
@@ -487,16 +489,14 @@
                                     onClick={handleDiscard}
                                     style={{ width: '100%' }}
                                 >
-                                    {__('Discard Changes', 'editorial-io')}
+                                    {__('Discard Changes', 'masthead')}
                                 </Button>
                             </Flex>
                         </div>
                     </PanelBody>
                 )}
 
-                {!isLoading && features.revision_timeline && (
-                    <RevisionTimelinePanel postId={postId} />
-                )}
+
             </>
         );
 
@@ -510,6 +510,27 @@
                         onPublish={handleChecklistPublish}
                         isSaving={checklistSaving}
                     />
+                )}
+
+                {/* WP 7.0: Compact staged revision status in document settings panel */}
+                {stagedRevision && (
+                    <PluginDocumentSettingPanel
+                        name="masthead-staged-status"
+                        title={__('Masthead', 'masthead')}
+                        className="masthead-document-panel"
+                    >
+                        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                            <span style={{ fontSize: '12px', color: '#757575' }}>
+                                {__('Staged revision pending', 'masthead')}
+                            </span>
+                            {getStatusBadge()}
+                        </div>
+                        {stagedRevision.ai_summary && (
+                            <p style={{ margin: '8px 0 0', fontSize: '12px', fontStyle: 'italic', color: '#555' }}>
+                                {stagedRevision.ai_summary}
+                            </p>
+                        )}
+                    </PluginDocumentSettingPanel>
                 )}
 
                 <PluginSidebarMoreMenuItem
@@ -552,7 +573,7 @@
 
         const handlePublish = () => {
             if (!allRequiredChecked()) {
-                setError(strings.requiredItems || __('Please complete all required items.', 'editorial-io'));
+                setError(strings.requiredItems || __('Please complete all required items.', 'masthead'));
                 return;
             }
             setError(null);
@@ -561,14 +582,14 @@
 
         return (
             <Modal
-                title={strings.checklistTitle || __('Publication Checklist', 'editorial-io')}
+                title={strings.checklistTitle || __('Publication Checklist', 'masthead')}
                 onRequestClose={onClose}
                 className="editorial-io-checklist-modal"
                 isDismissible={!isSaving}
             >
                 <div className="checklist-content">
                     <p className="checklist-subtitle">
-                        {strings.checklistSubtitle || __('Please review the following items before publishing.', 'editorial-io')}
+                        {strings.checklistSubtitle || __('Please review the following items before publishing.', 'masthead')}
                     </p>
 
                     {error && (
@@ -606,7 +627,7 @@
                                     isBusy={isSaving === 'rewrite'}
                                     disabled={!!isSaving}
                                 >
-                                    {strings.saveAsRewrite || __('Save as Rewrite', 'editorial-io')}
+                                    {strings.saveAsRewrite || __('Save as Rewrite', 'masthead')}
                                 </Button>
                             </FlexItem>
                         )}
@@ -617,7 +638,7 @@
                                 isBusy={isSaving === 'publish'}
                                 disabled={!!isSaving}
                             >
-                                {strings.confirmAndPublish || __('Confirm & Publish', 'editorial-io')}
+                                {strings.confirmAndPublish || __('Confirm & Publish', 'masthead')}
                             </Button>
                         </FlexItem>
                     </Flex>
@@ -626,91 +647,10 @@
         );
     }
 
-    /**
-     * Revision Timeline Panel Component
-     */
-    function RevisionTimelinePanel({ postId }) {
-        const [revisions, setRevisions] = useState([]);
-        const [loading, setLoading] = useState(false);
-        const [error, setError] = useState(null);
 
-        useEffect(() => {
-            loadRevisions();
-        }, [postId]);
-
-        const loadRevisions = async () => {
-            setLoading(true);
-            setError(null);
-
-            try {
-                const response = await apiFetch({
-                    path: `editorial/v1/posts/${postId}/revisions?per_page=10`
-                });
-                setRevisions(response);
-            } catch (err) {
-                setError(err.message || strings.error);
-            } finally {
-                setLoading(false);
-            }
-        };
-
-        return (
-            <PanelBody title={strings.revisionHistory || __('Revision History', 'editorial-io')} initialOpen={false}>
-                {loading && <Spinner />}
-
-                {error && (
-                    <Notice status="error" isDismissible={false}>
-                        {error}
-                    </Notice>
-                )}
-
-                {!loading && !error && revisions.length === 0 && (
-                    <p>{strings.noRevisions || __('No revisions found.', 'editorial-io')}</p>
-                )}
-
-                {!loading && !error && revisions.length > 0 && (
-                    <div className="revision-timeline">
-                        {revisions.slice(0, 5).map(revision => (
-                            <div key={revision.id} className={`revision-item revision-type-${revision.type}`}>
-                                <div className="revision-meta">
-                                    <div className="revision-author">
-                                        <img
-                                            src={revision.author.avatar}
-                                            alt={revision.author.name}
-                                            className="author-avatar"
-                                        />
-                                        <span className="author-name">{revision.author.name}</span>
-                                    </div>
-                                    <div className="revision-date">
-                                        {revision.date_relative} {strings.ago || __('ago', 'editorial-io')}
-                                    </div>
-                                </div>
-
-                                {revision.changes.length > 0 && (
-                                    <div className="revision-changes">
-                                        <small>
-                                            {strings.changed || __('Changed', 'editorial-io')} {revision.changes.join(', ')}
-                                        </small>
-                                    </div>
-                                )}
-                            </div>
-                        ))}
-
-                        {revisions.length > 5 && (
-                            <p>
-                                <Button isLink>
-                                    {__('View all revisions', 'editorial-io')}
-                                </Button>
-                            </p>
-                        )}
-                    </div>
-                )}
-            </PanelBody>
-        );
-    }
 
     // Register the plugin.
-    registerPlugin('editorial-io', {
+    registerPlugin('masthead', {
         render: EditorialIOPlugin,
         icon: 'edit-large',
     });

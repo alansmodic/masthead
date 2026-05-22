@@ -2,9 +2,9 @@
 /**
  * Plugin Name: Masthead
  * Description: The WordPress editorial suite. Bundles Edit Ledger, Rewrites, and Redline into a unified workflow with a single settings screen and cross-plugin integrations.
- * Version: 1.0.0
+ * Version: 1.1.0
  * Author: Alan Smodic
- * Requires at least: 6.9
+ * Requires at least: 7.0
  * Requires PHP: 7.4
  * Text Domain: masthead
  *
@@ -16,7 +16,7 @@ if ( ! defined( 'ABSPATH' ) ) {
 }
 
 // Plugin constants.
-define( 'MASTHEAD_VERSION', '1.0.0' );
+define( 'MASTHEAD_VERSION', '1.1.0' );
 define( 'MASTHEAD_PLUGIN_DIR', plugin_dir_path( __FILE__ ) );
 define( 'MASTHEAD_PLUGIN_URL', plugin_dir_url( __FILE__ ) );
 define( 'MASTHEAD_INCLUDES_DIR', MASTHEAD_PLUGIN_DIR . 'includes/' );
@@ -28,13 +28,15 @@ require_once MASTHEAD_INCLUDES_DIR . 'class-masthead.php';
 require_once MASTHEAD_INCLUDES_DIR . 'class-masthead-settings.php';
 require_once MASTHEAD_INCLUDES_DIR . 'class-masthead-module-registry.php';
 require_once MASTHEAD_INCLUDES_DIR . 'class-masthead-rest-controller.php';
+require_once MASTHEAD_INCLUDES_DIR . 'class-masthead-ai.php';
+require_once MASTHEAD_INCLUDES_DIR . 'class-masthead-connector.php';
 require_once MASTHEAD_INCLUDES_DIR . 'class-masthead-github-installer.php';
 require_once MASTHEAD_INCLUDES_DIR . 'class-masthead-github-updater.php';
 require_once MASTHEAD_ADMIN_DIR . 'class-masthead-admin.php';
 
 // Cross-plugin integrations (loaded conditionally after plugins_loaded).
 require_once MASTHEAD_INCLUDES_DIR . 'integrations/class-masthead-edit-ledger-rewrites.php';
-require_once MASTHEAD_INCLUDES_DIR . 'integrations/class-masthead-redline-rewrites.php';
+require_once MASTHEAD_INCLUDES_DIR . 'integrations/class-masthead-ai-rewrites.php';
 
 /**
  * Initialize Masthead.
@@ -43,6 +45,8 @@ function masthead_init() {
 	Masthead::get_instance();
 	Masthead_Settings::get_instance();
 	Masthead_Admin::get_instance();
+	Masthead_AI::get_instance();
+	Masthead_Connector::get_instance();
 	Masthead_GitHub_Installer::get_instance();
 	Masthead_GitHub_Updater::get_instance();
 
@@ -53,8 +57,9 @@ function masthead_init() {
 		Masthead_Edit_Ledger_Rewrites::get_instance();
 	}
 
-	if ( $registry->is_active( 'redline' ) && $registry->is_active( 'rewrites' ) ) {
-		Masthead_Redline_Rewrites::get_instance();
+	// AI-powered editorial features via WP 7.0 AI Client.
+	if ( function_exists( 'wp_ai_client_prompt' ) ) {
+		Masthead_AI_Rewrites::get_instance();
 	}
 }
 add_action( 'plugins_loaded', 'masthead_init' );

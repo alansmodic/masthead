@@ -47,23 +47,24 @@ class Masthead_Settings {
 	 * These only take effect when the relevant suite plugins are both active.
 	 */
 	private array $integrations = [
+
+		'require_ai_review_before_publish' => [
+			'label'       => 'Require AI review before publishing',
+			'description' => 'Block publishing if an AI editorial review hasn\'t been run or has unresolved issues.',
+			'default'     => false,
+			'requires'    => [ 'wordpress-ai' ],
+		],
+		'ai_review_in_checklist' => [
+			'label'       => 'Show AI review status in publication checklist',
+			'description' => 'Add an AI review item to the publication checklist.',
+			'default'     => true,
+			'requires'    => [ 'wordpress-ai' ],
+		],
 		'auto_summarize_on_submission' => [
 			'label'       => 'Auto-summarize revisions on submission',
-			'description' => 'When a staged revision is submitted, call Edit Ledger\'s AI to generate a summary for reviewers.',
+			'description' => 'When a staged revision is submitted, generate an AI summary for reviewers.',
 			'default'     => true,
-			'requires'    => [ 'edit-ledger', 'rewrites' ],
-		],
-		'require_redline_before_publish' => [
-			'label'       => 'Require Redline check before publishing',
-			'description' => 'Block publishing if a Redline check hasn\'t been run or has open errors.',
-			'default'     => false,
-			'requires'    => [ 'redline', 'rewrites' ],
-		],
-		'redline_in_checklist' => [
-			'label'       => 'Show Redline status in publication checklist',
-			'description' => 'Add a Redline check item to the publication checklist.',
-			'default'     => true,
-			'requires'    => [ 'redline', 'rewrites' ],
+			'requires'    => [ 'wordpress-ai', 'rewrites' ],
 		],
 	];
 

@@ -87,6 +87,9 @@ class Masthead_Abilities {
 		if ( $this->settings->is_feature_enabled( 'revision_timeline' ) ) {
 			$this->register_timeline_abilities();
 		}
+
+		// AI-powered editorial abilities (available when WP AI Client is configured).
+		$this->register_ai_abilities();
 	}
 
 	/**
@@ -495,6 +498,124 @@ class Masthead_Abilities {
 	}
 
 	/**
+	 * Register AI-powered editorial abilities.
+	 */
+	private function register_ai_abilities() {
+		wp_register_ability( 'masthead/content.review', array(
+			'label'               => __( 'AI Editorial Review', 'masthead' ),
+			'description'         => __( 'Run an AI-powered editorial review on post content, checking grammar, style, and tone.', 'masthead' ),
+			'category'            => 'masthead',
+			'callback'            => array( $this, 'ability_content_review' ),
+			'permission_callback' => function ( $input ) {
+				$post_id = $input['post_id'] ?? 0;
+				return $post_id && current_user_can( 'edit_post', $post_id );
+			},
+			'input_schema'        => array(
+				'type'       => 'object',
+				'required'   => array( 'post_id' ),
+				'properties' => array(
+					'post_id' => array(
+						'type'        => 'integer',
+						'description' => __( 'The post ID to review.', 'masthead' ),
+					),
+					'checks'  => array(
+						'type'        => 'array',
+						'description' => __( 'Which checks to run: grammar, style, factual, tone.', 'masthead' ),
+						'items'       => array( 'type' => 'string' ),
+						'default'     => array( 'grammar', 'style', 'tone' ),
+					),
+				),
+			),
+			'output_schema'       => array(
+				'type'       => 'object',
+				'properties' => array(
+					'issues'  => array(
+						'type'  => 'array',
+						'items' => array(
+							'type'       => 'object',
+							'properties' => array(
+								'type'     => array( 'type' => 'string' ),
+								'severity' => array( 'type' => 'string' ),
+								'excerpt'  => array( 'type' => 'string' ),
+								'note'     => array( 'type' => 'string' ),
+							),
+						),
+					),
+					'post_id' => array( 'type' => 'integer' ),
+					'ai_available' => array( 'type' => 'boolean' ),
+				),
+			),
+			'meta'                => array( 'show_in_rest' => true ),
+		) );
+
+		wp_register_ability( 'masthead/headline.suggest', array(
+			'label'               => __( 'Suggest Headlines', 'masthead' ),
+			'description'         => __( 'Generate AI-powered headline suggestions for a post.', 'masthead' ),
+			'category'            => 'masthead',
+			'callback'            => array( $this, 'ability_headline_suggest' ),
+			'permission_callback' => function ( $input ) {
+				$post_id = $input['post_id'] ?? 0;
+				return $post_id && current_user_can( 'edit_post', $post_id );
+			},
+			'input_schema'        => array(
+				'type'       => 'object',
+				'required'   => array( 'post_id' ),
+				'properties' => array(
+					'post_id' => array(
+						'type'        => 'integer',
+						'description' => __( 'The post ID to generate headlines for.', 'masthead' ),
+					),
+					'count'   => array(
+						'type'        => 'integer',
+						'description' => __( 'Number of suggestions (1-5).', 'masthead' ),
+						'default'     => 3,
+						'minimum'     => 1,
+						'maximum'     => 5,
+					),
+				),
+			),
+			'output_schema'       => array(
+				'type'       => 'object',
+				'properties' => array(
+					'headlines'    => array(
+						'type'  => 'array',
+						'items' => array( 'type' => 'string' ),
+					),
+					'post_id'      => array( 'type' => 'integer' ),
+					'ai_available' => array( 'type' => 'boolean' ),
+				),
+			),
+			'meta'                => array( 'show_in_rest' => true ),
+		) );
+
+		wp_register_ability( 'masthead/ai.status', array(
+			'label'               => __( 'AI Status', 'masthead' ),
+			'description'         => __( 'Check if AI editorial features are available and which provider is active.', 'masthead' ),
+			'category'            => 'masthead',
+			'callback'            => array( $this, 'ability_ai_status' ),
+			'permission_callback' => function () {
+				return current_user_can( 'edit_posts' );
+			},
+			'input_schema'        => array(
+				'type'       => 'object',
+				'properties' => new \stdClass(),
+			),
+			'output_schema'       => array(
+				'type'       => 'object',
+				'properties' => array(
+					'available' => array( 'type' => 'boolean' ),
+					'provider'  => array( 'type' => 'string' ),
+					'message'   => array( 'type' => 'string' ),
+				),
+			),
+			'meta'                => array(
+				'show_in_rest' => true,
+				'readonly'     => true,
+			),
+		) );
+	}
+
+	/**
 	 * Register revision timeline abilities.
 	 */
 	private function register_timeline_abilities() {
@@ -626,6 +747,40 @@ class Masthead_Abilities {
 				'properties' => array(
 					'success' => array( 'type' => 'boolean' ),
 					'post_id' => array( 'type' => 'integer' ),
+				),
+			),
+			'meta'                => array( 'show_in_rest' => true ),
+		) );
+
+		wp_register_ability( 'masthead/revision.summarize', array(
+			'label'               => __( 'Summarize Revision Changes', 'masthead' ),
+			'description'         => __( 'Generate a plain-English AI summary of what changed in a revision. Uses WP AI Client (7.0+) when available.', 'masthead' ),
+			'category'            => 'masthead',
+			'callback'            => array( $this, 'ability_revision_summarize' ),
+			'permission_callback' => function ( $input ) {
+				$revision_id = $input['revision_id'] ?? 0;
+				if ( ! $revision_id ) {
+					return false;
+				}
+				$revision = get_post( $revision_id );
+				return $revision && current_user_can( 'edit_post', $revision->post_parent );
+			},
+			'input_schema'        => array(
+				'type'       => 'object',
+				'required'   => array( 'revision_id' ),
+				'properties' => array(
+					'revision_id' => array(
+						'type'        => 'integer',
+						'description' => __( 'The revision ID to summarize.', 'masthead' ),
+					),
+				),
+			),
+			'output_schema'       => array(
+				'type'       => 'object',
+				'properties' => array(
+					'summary'     => array( 'type' => 'string' ),
+					'revision_id' => array( 'type' => 'integer' ),
+					'cached'      => array( 'type' => 'boolean' ),
 				),
 			),
 			'meta'                => array( 'show_in_rest' => true ),
@@ -1057,5 +1212,166 @@ class Masthead_Abilities {
 		);
 
 		return ! empty( $revisions ) ? array_shift( $revisions ) : null;
+	}
+
+	/**
+	 * Callback: Summarize revision changes via WP AI Client.
+	 *
+	 * @param array $input Ability input.
+	 * @return array|WP_Error
+	 */
+	public function ability_revision_summarize( $input ) {
+		if ( ! $this->settings->is_feature_enabled( 'revision_timeline' ) ) {
+			return new WP_Error( 'feature_disabled', __( 'Revision timeline feature is disabled.', 'masthead' ) );
+		}
+
+		$revision = get_post( $input['revision_id'] );
+		if ( ! $revision || 'revision' !== $revision->post_type ) {
+			return new WP_Error( 'not_found', __( 'Revision not found.', 'masthead' ) );
+		}
+
+		// Check for cached summary first.
+		$cached = get_metadata( 'post', $revision->ID, '_masthead_revision_summary', true );
+		if ( $cached ) {
+			return array(
+				'summary'     => $cached,
+				'revision_id' => $revision->ID,
+				'cached'      => true,
+			);
+		}
+
+		$parent = get_post( $revision->post_parent );
+		if ( ! $parent ) {
+			return new WP_Error( 'not_found', __( 'Parent post not found.', 'masthead' ) );
+		}
+
+		$compare = $this->get_previous_revision( $revision ) ?? $parent;
+
+		$changes = array();
+		if ( $revision->post_title !== $compare->post_title )     { $changes[] = 'title'; }
+		if ( $revision->post_content !== $compare->post_content ) { $changes[] = 'body content'; }
+		if ( $revision->post_excerpt !== $compare->post_excerpt ) { $changes[] = 'excerpt'; }
+
+		if ( empty( $changes ) ) {
+			return array(
+				'summary'     => __( 'No changes detected between this revision and its predecessor.', 'masthead' ),
+				'revision_id' => $revision->ID,
+				'cached'      => false,
+			);
+		}
+
+		$changed_fields = implode( ', ', $changes );
+
+		// Use Masthead_AI wrapper (routes through WP AI Client).
+		$ai = Masthead_AI::get_instance();
+		$summary = $ai->summarize_revision(
+			$changed_fields,
+			$revision->post_title ?: $parent->post_title,
+			$compare->post_content,
+			$revision->post_content
+		);
+
+		if ( is_wp_error( $summary ) ) {
+			// Fallback: plain description from diff fields.
+			$summary = sprintf(
+				/* translators: 1: changed fields list */
+				__( 'Revision updates the following fields: %s.', 'masthead' ),
+				$changed_fields
+			);
+		} else {
+			// Cache AI-generated summary.
+			update_metadata( 'post', $revision->ID, '_masthead_revision_summary', $summary );
+		}
+
+		return array(
+			'summary'     => $summary,
+			'revision_id' => $revision->ID,
+			'cached'      => false,
+		);
+	}
+
+	/**
+	 * Callback: AI editorial review.
+	 *
+	 * @param array $input Ability input.
+	 * @return array|WP_Error
+	 */
+	public function ability_content_review( $input ) {
+		$post = get_post( $input['post_id'] );
+		if ( ! $post ) {
+			return new WP_Error( 'not_found', __( 'Post not found.', 'masthead' ) );
+		}
+
+		$ai = Masthead_AI::get_instance();
+		if ( ! $ai->is_available() ) {
+			return array(
+				'issues'       => array(),
+				'post_id'      => $post->ID,
+				'ai_available' => false,
+			);
+		}
+
+		$checks = $input['checks'] ?? array( 'grammar', 'style', 'tone' );
+		$issues = $ai->review_content( $post->post_content, $post->post_title, $checks );
+
+		if ( is_wp_error( $issues ) ) {
+			return $issues;
+		}
+
+		// Store issue count for checklist integration.
+		$error_count = count( array_filter( $issues, fn( $i ) => $i['severity'] === 'error' ) );
+		update_post_meta( $post->ID, '_masthead_ai_review_date', current_time( 'mysql' ) );
+		update_post_meta( $post->ID, '_masthead_ai_review_issues', $error_count );
+
+		return array(
+			'issues'       => $issues,
+			'post_id'      => $post->ID,
+			'ai_available' => true,
+		);
+	}
+
+	/**
+	 * Callback: Suggest headlines.
+	 *
+	 * @param array $input Ability input.
+	 * @return array|WP_Error
+	 */
+	public function ability_headline_suggest( $input ) {
+		$post = get_post( $input['post_id'] );
+		if ( ! $post ) {
+			return new WP_Error( 'not_found', __( 'Post not found.', 'masthead' ) );
+		}
+
+		$ai = Masthead_AI::get_instance();
+		if ( ! $ai->is_available() ) {
+			return array(
+				'headlines'    => array(),
+				'post_id'      => $post->ID,
+				'ai_available' => false,
+			);
+		}
+
+		$count     = min( max( (int) ( $input['count'] ?? 3 ), 1 ), 5 );
+		$headlines = $ai->suggest_headlines( $post->post_content, $count );
+
+		if ( is_wp_error( $headlines ) ) {
+			return $headlines;
+		}
+
+		return array(
+			'headlines'    => $headlines,
+			'post_id'      => $post->ID,
+			'ai_available' => true,
+		);
+	}
+
+	/**
+	 * Callback: AI status check.
+	 *
+	 * @param array $input Ability input (unused).
+	 * @return array
+	 */
+	public function ability_ai_status( $input ) {
+		return Masthead_AI::get_instance()->get_status();
 	}
 }

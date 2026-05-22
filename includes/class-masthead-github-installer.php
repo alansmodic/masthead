@@ -25,7 +25,6 @@ class Masthead_GitHub_Installer {
 	const REPOS = [
 		'edit-ledger' => 'edit-ledger',
 		'rewrites'    => 'rewrites',
-		'redline'     => 'redline',
 	];
 
 	private static ?self $instance = null;

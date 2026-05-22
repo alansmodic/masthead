@@ -88,10 +88,26 @@ class Masthead {
 			return;
 		}
 
+		$editor_deps = [
+			'wp-plugins',
+			'wp-edit-post',
+			'wp-editor',
+			'wp-element',
+			'wp-components',
+			'wp-data',
+			'wp-api-fetch',
+			'wp-i18n',
+		];
+
+		// WP 7.0+: enqueue abilities API for auto-discovery of server-registered abilities.
+		if ( wp_script_is( 'wp-core-abilities', 'registered' ) ) {
+			$editor_deps[] = 'wp-core-abilities';
+		}
+
 		wp_enqueue_script(
 			'masthead-editor',
 			MASTHEAD_ASSETS_URL . 'js/editor.js',
-			[ 'wp-plugins', 'wp-edit-post', 'wp-element', 'wp-components', 'wp-data', 'wp-api-fetch', 'wp-i18n' ],
+			$editor_deps,
 			MASTHEAD_VERSION,
 			true
 		);
