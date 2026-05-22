@@ -37,7 +37,7 @@ class Masthead_AI {
 		}
 
 		$builder = wp_ai_client_prompt( 'test' )
-			->using_temperature( 0.3 );
+			;
 
 		return $builder->is_supported_for_text_generation();
 	}
@@ -80,7 +80,7 @@ class Masthead_AI {
 
 		$result = wp_ai_client_prompt( $prompt )
 			->using_system_instruction( $system )
-			->using_temperature( 0.3 )
+			
 			->using_max_tokens( 150 )
 			->using_model_preference( 'claude-sonnet-4-6', 'gpt-4o', 'gemini-2.5-flash' )
 			->generate_text();
@@ -131,7 +131,7 @@ class Masthead_AI {
 
 		$json = wp_ai_client_prompt( $prompt )
 			->using_system_instruction( $system )
-			->using_temperature( 0.2 )
+			
 			->using_max_tokens( 1000 )
 			->using_model_preference( 'claude-sonnet-4-6', 'gpt-4o', 'gemini-2.5-flash' )
 			->as_json_response( $schema )
@@ -173,7 +173,7 @@ class Masthead_AI {
 
 		$json = wp_ai_client_prompt( $prompt )
 			->using_system_instruction( $system )
-			->using_temperature( 0.8 )
+			
 			->using_max_tokens( 300 )
 			->using_model_preference( 'claude-sonnet-4-6', 'gpt-4o', 'gemini-2.5-flash' )
 			->as_json_response( $schema )
@@ -236,7 +236,7 @@ class Masthead_AI {
 
 		$result = wp_ai_client_prompt( $prompt )
 			->using_system_instruction( $system )
-			->using_temperature( 0.3 )
+			
 			->using_max_tokens( 80 )
 			->using_model_preference( 'claude-sonnet-4-6', 'gpt-4o', 'gemini-2.5-flash' )
 			->generate_text();
@@ -349,7 +349,7 @@ class Masthead_AI {
 
 		$json = wp_ai_client_prompt( $prompt )
 			->using_system_instruction( $system )
-			->using_temperature( 0.2 )
+			
 			->using_max_tokens( 500 )
 			->using_model_preference( 'claude-sonnet-4-6', 'gpt-4o', 'gemini-2.5-flash' )
 			->as_json_response( $schema )
@@ -397,7 +397,7 @@ class Masthead_AI {
 
 		// Do a quick probe to see which provider would handle requests.
 		$result = wp_ai_client_prompt( 'Hello' )
-			->using_temperature( 0 )
+			
 			->using_max_tokens( 1 )
 			->generate_text_result();
 
