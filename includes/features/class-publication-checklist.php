@@ -77,8 +77,9 @@ class Masthead_Publication_Checklist {
 	 */
 	public function get_checklist_items( $post_id = 0 ) {
 		$items = $this->settings->get_checklist_items();
+		$items = apply_filters( 'masthead_publication_checklist_items', $items, (int) $post_id );
 
-		return apply_filters( 'masthead_publication_checklist_items', $items, (int) $post_id );
+		return $this->normalize_checklist_items( $items );
 	}
 
 	/**
@@ -316,6 +317,7 @@ class Masthead_Publication_Checklist {
 			wp_send_json_error( array(
 				'message'         => __( 'Please complete all required checklist items.', 'masthead' ),
 				'missing_items'   => $validation_result['missing_required'],
+				'blocked_items'   => $validation_result['blocked_required'],
 				'validated'       => false,
 			) );
 		}
@@ -330,9 +332,29 @@ class Masthead_Publication_Checklist {
 	public function validate_checklist( $checked_items, $post_id = 0 ) {
 		$checklist_items = $this->get_checklist_items( $post_id );
 		$missing_required = array();
+		$blocked_required = array();
+		$checked_items = array_map( 'absint', (array) $checked_items );
 
 		foreach ( $checklist_items as $index => $item ) {
-			if ( $item['required'] && ! in_array( $index, $checked_items, true ) ) {
+			if ( empty( $item['required'] ) ) {
+				continue;
+			}
+
+			if ( 'fail' === ( $item['status'] ?? '' ) || 'unavailable' === ( $item['status'] ?? '' ) ) {
+				$blocked_required[] = array(
+					'index'   => $index,
+					'label'   => $item['label'],
+					'status'  => $item['status'],
+					'message' => $item['message'] ?? '',
+				);
+				continue;
+			}
+
+			if ( ! empty( $item['auto_checked'] ) || 'pass' === ( $item['status'] ?? '' ) ) {
+				continue;
+			}
+
+			if ( ! in_array( $index, $checked_items, true ) ) {
 				$missing_required[] = array(
 					'index' => $index,
 					'label' => $item['label'],
@@ -341,13 +363,50 @@ class Masthead_Publication_Checklist {
 		}
 
 		return array(
-			'valid'             => empty( $missing_required ),
+			'valid'             => empty( $missing_required ) && empty( $blocked_required ),
 			'missing_required'  => $missing_required,
+			'blocked_required'  => $blocked_required,
 			'completed_items'   => count( $checked_items ),
 			'required_items'    => count( array_filter( $checklist_items, function( $item ) {
 				return $item['required'];
 			} ) ),
 		);
+	}
+
+	/**
+	 * Normalize checklist items from settings and filters into one response shape.
+	 *
+	 * @param array $items Checklist items.
+	 * @return array
+	 */
+	private function normalize_checklist_items( array $items ): array {
+		$normalized = array();
+
+		foreach ( $items as $index => $item ) {
+			if ( ! is_array( $item ) || empty( $item['label'] ) ) {
+				continue;
+			}
+
+			$status = sanitize_key( $item['status'] ?? 'manual' );
+			if ( 'complete' === $status ) {
+				$status = 'pass';
+			} elseif ( 'pending' === $status || 'skipped' === $status ) {
+				$status = 'warning';
+			}
+
+			$normalized[] = array(
+				'id'           => sanitize_key( $item['id'] ?? 'masthead_checklist_' . $index ),
+				'label'        => sanitize_text_field( $item['label'] ),
+				'required'     => ! empty( $item['required'] ),
+				'status'       => $status,
+				'message'      => isset( $item['message'] ) ? sanitize_text_field( $item['message'] ) : '',
+				'source'       => sanitize_key( $item['source'] ?? ( isset( $item['status'] ) ? 'integration' : 'static' ) ),
+				'auto_checked' => ! empty( $item['auto_checked'] ) || 'pass' === $status,
+				'action'       => isset( $item['action'] ) && is_array( $item['action'] ) ? $item['action'] : null,
+			);
+		}
+
+		return $normalized;
 	}
 
 	/**
@@ -596,14 +655,14 @@ class Masthead_Publication_Checklist {
 	 *
 	 * @return array
 	 */
-	public function get_frontend_config() {
+	public function get_frontend_config( $post_id = 0 ) {
 		if ( ! $this->is_checklist_enabled() ) {
 			return array( 'enabled' => false );
 		}
 
 		return array(
 			'enabled'        => true,
-			'items'          => $this->get_checklist_items(),
+			'items'          => $this->get_checklist_items( $post_id ),
 			'nonce'          => wp_create_nonce( 'masthead_checklist' ),
 			'ajax_url'       => admin_url( 'admin-ajax.php' ),
 			'show_for_new'   => apply_filters( 'masthead_checklist_show_for_new_posts', false ),

@@ -187,9 +187,37 @@ class Masthead_AI_Rewrites {
 				$review_item['message'] ?? __( 'Unknown status', 'masthead' )
 			),
 			'required' => ! empty( $review_item['required'] ),
+			'status'   => $this->map_review_status_for_masthead( $review_item ),
+			'message'  => $review_item['message'] ?? '',
+			'source'   => 'ai',
 		);
 
 		return $items;
+	}
+
+	/**
+	 * Map AI review status to Masthead checklist status values.
+	 *
+	 * @param array $review_item Review item.
+	 * @return string
+	 */
+	private function map_review_status_for_masthead( array $review_item ): string {
+		$status   = $review_item['status'] ?? 'pending';
+		$required = ! empty( $review_item['required'] );
+
+		if ( 'complete' === $status ) {
+			return 'pass';
+		}
+
+		if ( 'skipped' === $status ) {
+			return $required ? 'unavailable' : 'warning';
+		}
+
+		if ( $required && ( 'pending' === $status || 'warning' === $status ) ) {
+			return 'fail';
+		}
+
+		return 'warning';
 	}
 
 	/**

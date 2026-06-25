@@ -38,8 +38,9 @@
     // Get configuration
     const config = window.mastheadData || {};
     const { postId, features, strings } = config;
-    const checklistItems = config.config?.checklist?.items || [];
-    const checklistEnabled = features?.publication_checklist && checklistItems.length > 0;
+    const initialChecklistItems = config.config?.checklist?.items || [];
+    const checklistConfig = config.config?.checklist || {};
+    const checklistEnabled = features?.publication_checklist && checklistConfig.enabled !== false;
 
     /**
      * Main Editorial.io Plugin Component (renders at top level like Rewrites)
@@ -59,6 +60,8 @@
         // Checklist modal state.
         const [showChecklist, setShowChecklist] = useState(false);
         const [checklistSaving, setChecklistSaving] = useState(null);
+        const [checklistItems, setChecklistItems] = useState(initialChecklistItems);
+        const [checklistLoading, setChecklistLoading] = useState(false);
         const pendingSaveRef = useRef(null);
         const bypassChecklistRef = useRef(false);
 
@@ -151,6 +154,24 @@
                 });
         }, [postId, isPostPublished]);
 
+        useEffect(() => {
+            if (!showChecklist || !postId || !features.publication_checklist) {
+                return;
+            }
+
+            setChecklistLoading(true);
+            apiFetch({ path: `masthead/v1/posts/${postId}/checklist` })
+                .then((response) => {
+                    setChecklistItems(response.items || []);
+                })
+                .catch(() => {
+                    setChecklistItems(initialChecklistItems);
+                })
+                .finally(() => {
+                    setChecklistLoading(false);
+                });
+        }, [showChecklist, postId]);
+
         // Only show for published posts.
         if (!isPostPublished) {
             return null;
@@ -191,15 +212,42 @@
         /**
          * Publish after checklist confirmation.
          */
-        const handleChecklistPublish = () => {
+        const handleChecklistPublish = async (checkedItems) => {
             setChecklistSaving('publish');
-            setShowChecklist(false);
 
-            if (pendingSaveRef.current) {
-                pendingSaveRef.current();
+            try {
+                const formData = new window.FormData();
+                formData.append('action', 'masthead_validate_checklist');
+                formData.append('nonce', checklistConfig.nonce || '');
+                formData.append('post_id', postId);
+                checkedItems.forEach((index) => {
+                    formData.append('checked_items[]', index);
+                });
+
+                const response = await window.fetch(checklistConfig.ajax_url || window.ajaxurl, {
+                    method: 'POST',
+                    credentials: 'same-origin',
+                    body: formData,
+                });
+                const result = await response.json();
+
+                if (!result.success) {
+                    const message = result.data?.message || strings.requiredItems || __('Please complete all required items.', 'masthead');
+                    throw new Error(message);
+                }
+
+                setShowChecklist(false);
+
+                if (pendingSaveRef.current) {
+                    pendingSaveRef.current();
+                }
+            } catch (err) {
+                createErrorNotice(err.message || __('Failed to validate checklist.', 'masthead'), {
+                    type: 'snackbar',
+                });
+            } finally {
+                setChecklistSaving(null);
             }
-
-            setChecklistSaving(null);
         };
 
         /**
@@ -505,6 +553,8 @@
                 {/* Checklist modal */}
                 {checklistEnabled && showChecklist && (
                     <ChecklistModal
+                        items={checklistItems}
+                        isLoading={checklistLoading}
                         onClose={() => setShowChecklist(false)}
                         onSaveRewrite={handleChecklistSaveRewrite}
                         onPublish={handleChecklistPublish}
@@ -554,7 +604,7 @@
     /**
      * Checklist Modal Component — intercepts publish, offers "Save as Rewrite" or "Confirm & Publish".
      */
-    function ChecklistModal({ onClose, onSaveRewrite, onPublish, isSaving }) {
+    function ChecklistModal({ items, isLoading, onClose, onSaveRewrite, onPublish, isSaving }) {
         const [checkedItems, setCheckedItems] = useState({});
         const [error, setError] = useState(null);
 
@@ -562,13 +612,21 @@
             setCheckedItems(prev => ({ ...prev, [index]: checked }));
         };
 
-        const allRequiredChecked = () => {
-            return checklistItems.every((item, index) => {
-                if (item.required) {
-                    return checkedItems[index] === true;
-                }
+        const itemIsSatisfied = (item, index) => {
+            if (!item.required) {
                 return true;
-            });
+            }
+            if (item.status === 'fail' || item.status === 'unavailable') {
+                return false;
+            }
+            if (item.auto_checked || item.status === 'pass') {
+                return true;
+            }
+            return checkedItems[index] === true;
+        };
+
+        const allRequiredChecked = () => {
+            return items.every((item, index) => itemIsSatisfied(item, index));
         };
 
         const handlePublish = () => {
@@ -577,7 +635,18 @@
                 return;
             }
             setError(null);
-            onPublish();
+            const checkedIndexes = items
+                .map((item, index) => (checkedItems[index] || item.auto_checked || item.status === 'pass') ? index : null)
+                .filter((index) => index !== null);
+            onPublish(checkedIndexes);
+        };
+
+        const getStatusLabel = (item) => {
+            if (item.status === 'pass') return __('Pass', 'masthead');
+            if (item.status === 'warning') return __('Warning', 'masthead');
+            if (item.status === 'fail') return __('Needs Fix', 'masthead');
+            if (item.status === 'unavailable') return __('Unavailable', 'masthead');
+            return item.required ? __('Required', 'masthead') : __('Optional', 'masthead');
         };
 
         return (
@@ -598,9 +667,20 @@
                         </Notice>
                     )}
 
+                    {isLoading && (
+                        <div className="checklist-loading">
+                            <Spinner />
+                            <span>{strings.loading || __('Loading…', 'masthead')}</span>
+                        </div>
+                    )}
+
                     <div className="checklist-items">
-                        {checklistItems.map((item, index) => (
-                            <div key={index} className="checklist-item">
+                        {items.map((item, index) => {
+                            const autoChecked = !!item.auto_checked || item.status === 'pass';
+                            const disabled = !!isSaving || autoChecked || item.status === 'fail' || item.status === 'unavailable';
+
+                            return (
+                            <div key={item.id || index} className={`checklist-item status-${item.status || 'manual'}`}>
                                 <CheckboxControl
                                     label={
                                         <>
@@ -610,12 +690,19 @@
                                             )}
                                         </>
                                     }
-                                    checked={checkedItems[index] || false}
+                                    checked={checkedItems[index] || autoChecked}
                                     onChange={(checked) => handleCheckChange(index, checked)}
-                                    disabled={!!isSaving}
+                                    disabled={disabled}
                                 />
+                                <div className="checklist-item-meta">
+                                    <span className="checklist-status">{getStatusLabel(item)}</span>
+                                    {item.message && (
+                                        <span className="checklist-message">{item.message}</span>
+                                    )}
+                                </div>
                             </div>
-                        ))}
+                            );
+                        })}
                     </div>
 
                     <Flex justify="flex-end" gap={3}>

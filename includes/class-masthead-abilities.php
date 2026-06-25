@@ -388,7 +388,12 @@ class Masthead_Abilities {
 			},
 			'input_schema'        => array(
 				'type'                 => 'object',
-				'properties'           => array(),
+				'properties'           => array(
+					'post_id' => array(
+						'type'        => 'integer',
+						'description' => __( 'Optional post ID for contextual checklist items.', 'masthead' ),
+					),
+				),
 				'additionalProperties' => false,
 				'default'              => array(),
 			),
@@ -399,6 +404,9 @@ class Masthead_Abilities {
 					'properties' => array(
 						'label'    => array( 'type' => 'string' ),
 						'required' => array( 'type' => 'boolean' ),
+						'status'   => array( 'type' => 'string' ),
+						'message'  => array( 'type' => 'string' ),
+						'source'   => array( 'type' => 'string' ),
 					),
 				),
 			),
@@ -446,11 +454,51 @@ class Masthead_Abilities {
 							),
 						),
 					),
+					'blocked_required' => array(
+						'type'  => 'array',
+						'items' => array( 'type' => 'object' ),
+					),
 					'completed_items'  => array( 'type' => 'integer' ),
 					'required_items'   => array( 'type' => 'integer' ),
 				),
 			),
 			'meta'                => array( 'show_in_rest' => true ),
+		) );
+
+		wp_register_ability( 'masthead/generate-checklist', array(
+			'label'               => __( 'Generate Smart Checklist', 'masthead' ),
+			'description'         => __( 'Generate contextual publication checklist items for a post.', 'masthead' ),
+			'category'            => 'masthead',
+			'execute_callback'    => array( $this, 'ability_checklist_generate' ),
+			'permission_callback' => function ( $input ) {
+				$post_id = $input['post_id'] ?? 0;
+				return $post_id && current_user_can( 'edit_post', $post_id );
+			},
+			'input_schema'        => array(
+				'type'       => 'object',
+				'required'   => array( 'post_id' ),
+				'properties' => array(
+					'post_id' => array(
+						'type'        => 'integer',
+						'description' => __( 'The post ID to analyze.', 'masthead' ),
+					),
+				),
+			),
+			'output_schema'       => array(
+				'type'       => 'object',
+				'properties' => array(
+					'post_id' => array( 'type' => 'integer' ),
+					'items'   => array(
+						'type'  => 'array',
+						'items' => array( 'type' => 'object' ),
+					),
+					'summary' => array( 'type' => 'object' ),
+				),
+			),
+			'meta'                => array(
+				'show_in_rest' => true,
+				'readonly'     => true,
+			),
 		) );
 	}
 
@@ -1150,7 +1198,38 @@ class Masthead_Abilities {
 			return new WP_Error( 'feature_disabled', __( 'Publication checklist feature is disabled.', 'masthead' ) );
 		}
 
-		return $this->settings->get_checklist_items();
+		$post_id = absint( $input['post_id'] ?? 0 );
+		if ( $post_id && ! current_user_can( 'edit_post', $post_id ) ) {
+			return new WP_Error( 'permission_denied', __( 'Permission denied.', 'masthead' ) );
+		}
+
+		return Masthead_Publication_Checklist::get_instance()->get_checklist_items( $post_id );
+	}
+
+	/**
+	 * Callback: Generate smart checklist.
+	 *
+	 * @param array $input Ability input.
+	 * @return array|WP_Error
+	 */
+	public function ability_checklist_generate( $input ) {
+		if ( ! $this->settings->is_feature_enabled( 'publication_checklist' ) ) {
+			return new WP_Error( 'feature_disabled', __( 'Publication checklist feature is disabled.', 'masthead' ) );
+		}
+
+		$post_id = absint( $input['post_id'] ?? 0 );
+		$post    = $post_id ? get_post( $post_id ) : null;
+		if ( ! $post ) {
+			return new WP_Error( 'not_found', __( 'Post not found.', 'masthead' ) );
+		}
+
+		$items = Masthead_Publication_Checklist::get_instance()->get_checklist_items( $post_id );
+
+		return array(
+			'post_id' => $post_id,
+			'items'   => $items,
+			'summary' => $this->summarize_checklist_items( $items ),
+		);
 	}
 
 	/**
@@ -1166,13 +1245,49 @@ class Masthead_Abilities {
 
 		$checklist = Masthead_Publication_Checklist::get_instance();
 		$checked_items = array_map( 'absint', $input['checked_items'] );
-		$result = $checklist->validate_checklist( $checked_items );
+		$result = $checklist->validate_checklist( $checked_items, absint( $input['post_id'] ) );
 
 		if ( $result['valid'] ) {
 			update_post_meta( $input['post_id'], '_masthead_checklist_bypassed', true );
 		}
 
 		return $result;
+	}
+
+	/**
+	 * Summarize checklist item states.
+	 *
+	 * @param array $items Checklist items.
+	 * @return array
+	 */
+	private function summarize_checklist_items( array $items ): array {
+		$summary = array(
+			'total'       => count( $items ),
+			'required'    => 0,
+			'passing'     => 0,
+			'warnings'    => 0,
+			'blocking'    => 0,
+			'unavailable' => 0,
+		);
+
+		foreach ( $items as $item ) {
+			if ( ! empty( $item['required'] ) ) {
+				$summary['required']++;
+			}
+
+			$status = $item['status'] ?? 'manual';
+			if ( 'pass' === $status ) {
+				$summary['passing']++;
+			} elseif ( 'warning' === $status ) {
+				$summary['warnings']++;
+			} elseif ( 'fail' === $status ) {
+				$summary['blocking']++;
+			} elseif ( 'unavailable' === $status ) {
+				$summary['unavailable']++;
+			}
+		}
+
+		return $summary;
 	}
 
 	/**
