@@ -109,6 +109,7 @@ class Masthead_Staged_Revisions {
 
 			/** This action is documented below. */
 			do_action( 'masthead_staged_revision_created', $revision_id, $post_id, $post_data, $meta_data );
+			self::do_staged_revision_submitted_action( $revision_id, $post_id, $meta_data );
 
 			return $revision_id;
 		}
@@ -153,8 +154,34 @@ class Masthead_Staged_Revisions {
 		 * @param array   $meta_data   The meta data.
 		 */
 		do_action( 'masthead_staged_revision_created', $revision_id, $post_id, $post_data, $meta_data );
+		self::do_staged_revision_submitted_action( $revision_id, $post_id, $meta_data );
 
 		return $revision_id;
+	}
+
+	/**
+	 * Fire the canonical staged revision submission hook.
+	 *
+	 * @param int   $revision_id Revision ID.
+	 * @param int   $post_id     Parent post ID.
+	 * @param array $meta_data   Optional submission metadata.
+	 */
+	private static function do_staged_revision_submitted_action( int $revision_id, int $post_id, array $meta_data = array() ): void {
+		$revision_post = get_post( $revision_id );
+
+		if ( ! $revision_post ) {
+			return;
+		}
+
+		/**
+		 * Fired after a staged revision is submitted or resubmitted for review.
+		 *
+		 * @param int     $revision_id   Revision ID.
+		 * @param WP_Post $revision_post Revision post object.
+		 * @param int     $post_id       Parent post ID.
+		 * @param array   $meta_data     Optional submission metadata.
+		 */
+		do_action( 'masthead_staged_revision_submitted', $revision_id, $revision_post, $post_id, $meta_data );
 	}
 
 	/**
@@ -290,6 +317,21 @@ class Masthead_Staged_Revisions {
 		$post = get_post( $post_id );
 		if ( ! $post ) {
 			return new WP_Error( 'post_not_found', __( 'Parent post not found.', 'masthead' ) );
+		}
+
+		$can_publish = apply_filters( 'masthead_can_publish_staged_revision', true, $revision_id, $post_id, $revision );
+		if ( is_wp_error( $can_publish ) ) {
+			do_action( 'masthead_staged_revision_publish_blocked', $revision_id, $post_id, $can_publish );
+			return $can_publish;
+		}
+
+		if ( ! $can_publish ) {
+			$error = new WP_Error(
+				'masthead_publish_blocked',
+				__( 'This staged revision cannot be published yet.', 'masthead' )
+			);
+			do_action( 'masthead_staged_revision_publish_blocked', $revision_id, $post_id, $error );
+			return $error;
 		}
 
 		// Restore the parent post from the staged revision using core's revision restore.
@@ -471,6 +513,7 @@ class Masthead_Staged_Revisions {
 			'staged_status'      => self::get_revision_meta( $revision->ID, 'staged_status' ) ?: 'pending',
 			'scheduled_date'     => self::get_revision_meta( $revision->ID, 'staged_publish_date' ) ?: null,
 			'notes'              => self::get_revision_meta( $revision->ID, 'staged_notes' ) ?: '',
+			'summary'            => self::get_revision_meta( $revision->ID, 'revision_summary' ) ?: '',
 		);
 
 		return $formatted;
@@ -485,7 +528,7 @@ class Masthead_Staged_Revisions {
 	public static function format_for_response( $revision ) {
 		$author = get_userdata( $revision->staged_author_id );
 
-		return array(
+		$response = array(
 			'revision_id'    => (int) $revision->revision_id,
 			'post_id'        => (int) $revision->post_parent,
 			'post_title'     => $revision->revision_title,
@@ -501,10 +544,13 @@ class Masthead_Staged_Revisions {
 			'status'         => $revision->staged_status,
 			'scheduled_date' => $revision->scheduled_date,
 			'notes'          => $revision->notes,
+			'summary'        => $revision->summary,
 			'modified'       => $revision->post_modified,
 			'edit_url'       => get_edit_post_link( $revision->post_parent, 'raw' ),
 			'view_url'       => get_permalink( $revision->post_parent ),
 		);
+
+		return apply_filters( 'masthead_staged_revision_response', $response, $revision );
 	}
 
 	/**

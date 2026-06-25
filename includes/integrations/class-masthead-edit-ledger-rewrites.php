@@ -26,11 +26,33 @@ class Masthead_Edit_Ledger_Rewrites {
 	}
 
 	private function init(): void {
-		// When a rewrite is submitted for review, generate an AI summary via Edit Ledger.
-		add_action( 'rewrites_after_submit', [ $this, 'summarize_on_submission' ], 10, 2 );
+		$settings = Masthead_Settings::get_instance();
+
+		if ( $settings->is_integration_enabled( 'auto_summarize_on_submission' ) ) {
+			// Canonical Masthead hook plus legacy Rewrites hook for compatibility.
+			add_action( 'masthead_staged_revision_submitted', [ $this, 'mirror_summary_on_submission' ], 20, 4 );
+			add_action( 'rewrites_after_submit', [ $this, 'summarize_on_submission' ], 10, 2 );
+		}
 
 		// Attach the summary to the approval panel.
 		add_filter( 'rewrites_approval_panel_data', [ $this, 'attach_summary_to_panel' ], 10, 2 );
+		add_filter( 'masthead_staged_revision_response', [ $this, 'attach_summary_to_response' ], 10, 2 );
+	}
+
+	/**
+	 * Keep canonical staged revision summaries available to integration surfaces.
+	 *
+	 * @param int     $revision_id   Revision ID.
+	 * @param WP_Post $revision_post Revision post object.
+	 * @param int     $post_id       Parent post ID.
+	 * @param array   $meta_data     Submission metadata.
+	 */
+	public function mirror_summary_on_submission( int $revision_id, $revision_post, int $post_id, array $meta_data = array() ): void {
+		$summary = get_post_meta( $revision_id, '_masthead_revision_summary', true );
+
+		if ( $summary ) {
+			update_post_meta( $post_id, '_masthead_latest_revision_summary', sanitize_textarea_field( $summary ) );
+		}
 	}
 
 	/**
@@ -38,7 +60,7 @@ class Masthead_Edit_Ledger_Rewrites {
 	 */
 	public function summarize_on_submission( int $rewrite_id, int $revision_id ): void {
 		$settings = Masthead_Settings::get_instance();
-		if ( ! $settings->get( 'auto_summarize_on_submission' ) ) {
+		if ( ! $settings->is_integration_enabled( 'auto_summarize_on_submission' ) ) {
 			return;
 		}
 
@@ -72,5 +94,25 @@ class Masthead_Edit_Ledger_Rewrites {
 			$data['masthead_summary'] = $summary;
 		}
 		return $data;
+	}
+
+	/**
+	 * Attach summary data to Masthead's staged revision REST response.
+	 *
+	 * @param array  $response Formatted response.
+	 * @param object $revision Formatted revision object.
+	 * @return array
+	 */
+	public function attach_summary_to_response( array $response, object $revision ): array {
+		if ( ! empty( $response['summary'] ) ) {
+			return $response;
+		}
+
+		$summary = get_post_meta( (int) $revision->revision_id, '_masthead_revision_summary', true );
+		if ( $summary ) {
+			$response['summary'] = $summary;
+		}
+
+		return $response;
 	}
 }

@@ -81,7 +81,14 @@ function masthead_init() {
 	}
 
 	// AI-powered editorial features via WP 7.0 AI Client.
-	if ( function_exists( 'wp_ai_client_prompt' ) ) {
+	if (
+		$registry->is_active( 'wordpress-ai' )
+		&& (
+			$settings->is_integration_enabled( 'require_ai_review_before_publish' )
+			|| $settings->is_integration_enabled( 'ai_review_in_checklist' )
+			|| $settings->is_integration_enabled( 'auto_summarize_on_submission' )
+		)
+	) {
 		Masthead_AI_Rewrites::get_instance();
 	}
 }
