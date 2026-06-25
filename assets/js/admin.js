@@ -1,11 +1,11 @@
 /**
- * Admin JavaScript for Editorial.io
+ * Admin JavaScript for Masthead
  */
 
 (function($) {
     'use strict';
     
-    const EditorialIOAdmin = {
+    const MastheadAdmin = {
         init: function() {
             this.bindEvents();
             this.initSortable();
@@ -43,13 +43,13 @@
             const submitButton = form.find('button[type="submit"]');
             const statusSpan = form.find('.settings-status');
             
-            submitButton.prop('disabled', true).text(editorialIOAdmin.strings.saving);
+            submitButton.prop('disabled', true).text(mastheadAdmin.strings.saving);
             statusSpan.removeClass('success error warning').text('');
             
             const formData = new FormData(form[0]);
-            formData.append('action', 'editorial_io_save_settings');
+            formData.append('action', 'masthead_save_settings');
             formData.append('section', 'features');
-            formData.append('nonce', editorialIOAdmin.nonce);
+            formData.append('nonce', mastheadAdmin.nonce);
             
             $.ajax({
                 url: ajaxurl,
@@ -77,14 +77,14 @@
                             statusSpan.addClass('warning').text(statusSpan.text() + ' ' + warningMsg);
                         }
                     } else {
-                        statusSpan.addClass('error').text(response.data.message || editorialIOAdmin.strings.error);
+                        statusSpan.addClass('error').text(response.data.message || mastheadAdmin.strings.error);
                     }
                 },
                 error: function() {
-                    statusSpan.addClass('error').text(editorialIOAdmin.strings.error);
+                    statusSpan.addClass('error').text(mastheadAdmin.strings.error);
                 },
                 complete: function() {
-                    submitButton.prop('disabled', false).text(editorialIOAdmin.strings.save);
+                    submitButton.prop('disabled', false).text(mastheadAdmin.strings.save);
                 }
             });
         },
@@ -92,7 +92,7 @@
         handleFeaturesReset: function(e) {
             e.preventDefault();
             
-            if (!confirm(editorialIOAdmin.strings.confirmReset)) {
+            if (!confirm(mastheadAdmin.strings.confirmReset)) {
                 return;
             }
             
@@ -106,8 +106,8 @@
                 url: ajaxurl,
                 method: 'POST',
                 data: {
-                    action: 'editorial_io_reset_features',
-                    nonce: editorialIOAdmin.nonce
+                    action: 'masthead_reset_features',
+                    nonce: mastheadAdmin.nonce
                 },
                 success: function(response) {
                     if (response.success) {
@@ -128,11 +128,11 @@
                             location.reload();
                         }, 1500);
                     } else {
-                        statusSpan.addClass('error').text(response.data.message || editorialIOAdmin.strings.error);
+                        statusSpan.addClass('error').text(response.data.message || mastheadAdmin.strings.error);
                     }
                 },
                 error: function() {
-                    statusSpan.addClass('error').text(editorialIOAdmin.strings.error);
+                    statusSpan.addClass('error').text(mastheadAdmin.strings.error);
                 },
                 complete: function() {
                     button.prop('disabled', false);
@@ -147,7 +147,7 @@
             const submitButton = form.find('button[type="submit"]');
             const statusSpan = form.find('.settings-status');
             
-            submitButton.prop('disabled', true).text(editorialIOAdmin.strings.saving);
+            submitButton.prop('disabled', true).text(mastheadAdmin.strings.saving);
             statusSpan.removeClass('success error').text('');
             
             // Collect checklist items
@@ -168,23 +168,23 @@
                 url: ajaxurl,
                 method: 'POST',
                 data: {
-                    action: 'editorial_io_save_settings',
+                    action: 'masthead_save_settings',
                     section: 'checklist',
                     items: items,
-                    nonce: editorialIOAdmin.nonce
+                    nonce: mastheadAdmin.nonce
                 },
                 success: function(response) {
                     if (response.success) {
                         statusSpan.addClass('success').text(response.data.message);
                     } else {
-                        statusSpan.addClass('error').text(response.data.message || editorialIOAdmin.strings.error);
+                        statusSpan.addClass('error').text(response.data.message || mastheadAdmin.strings.error);
                     }
                 },
                 error: function() {
-                    statusSpan.addClass('error').text(editorialIOAdmin.strings.error);
+                    statusSpan.addClass('error').text(mastheadAdmin.strings.error);
                 },
                 complete: function() {
-                    submitButton.prop('disabled', false).text(editorialIOAdmin.strings.save);
+                    submitButton.prop('disabled', false).text(mastheadAdmin.strings.save);
                 }
             });
         },
@@ -196,13 +196,13 @@
             const submitButton = form.find('button[type="submit"]');
             const statusSpan = form.find('.settings-status');
             
-            submitButton.prop('disabled', true).text(editorialIOAdmin.strings.saving);
+            submitButton.prop('disabled', true).text(mastheadAdmin.strings.saving);
             statusSpan.removeClass('success error').text('');
             
             const formData = new FormData(form[0]);
-            formData.append('action', 'editorial_io_save_settings');
+            formData.append('action', 'masthead_save_settings');
             formData.append('section', 'general');
-            formData.append('nonce', editorialIOAdmin.nonce);
+            formData.append('nonce', mastheadAdmin.nonce);
             
             $.ajax({
                 url: ajaxurl,
@@ -214,14 +214,14 @@
                     if (response.success) {
                         statusSpan.addClass('success').text(response.data.message);
                     } else {
-                        statusSpan.addClass('error').text(response.data.message || editorialIOAdmin.strings.error);
+                        statusSpan.addClass('error').text(response.data.message || mastheadAdmin.strings.error);
                     }
                 },
                 error: function() {
-                    statusSpan.addClass('error').text(editorialIOAdmin.strings.error);
+                    statusSpan.addClass('error').text(mastheadAdmin.strings.error);
                 },
                 complete: function() {
-                    submitButton.prop('disabled', false).text(editorialIOAdmin.strings.save);
+                    submitButton.prop('disabled', false).text(mastheadAdmin.strings.save);
                 }
             });
         },
@@ -235,7 +235,7 @@
             const newItem = $(`
                 <div class="checklist-item" data-index="${newIndex}">
                     <span class="checklist-handle dashicons dashicons-menu"></span>
-                    <input type="text" class="checklist-label regular-text" placeholder="${editorialIOAdmin.strings.checklistPlaceholder || 'Checklist item text...'}" />
+                    <input type="text" class="checklist-label regular-text" placeholder="${mastheadAdmin.strings.checklistPlaceholder || 'Checklist item text...'}" />
                     <label class="checklist-required">
                         <input type="checkbox" />
                         Required
@@ -253,7 +253,7 @@
         deleteChecklistItem: function(e) {
             e.preventDefault();
             
-            if (!confirm(editorialIOAdmin.strings.confirmDelete)) {
+            if (!confirm(mastheadAdmin.strings.confirmDelete)) {
                 return;
             }
             
@@ -265,7 +265,7 @@
     
     // Initialize when document is ready
     $(document).ready(function() {
-        EditorialIOAdmin.init();
+        MastheadAdmin.init();
     });
     
 })(jQuery);

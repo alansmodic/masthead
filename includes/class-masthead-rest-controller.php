@@ -27,7 +27,7 @@ class Masthead_REST_Controller extends WP_REST_Controller {
 	 * Constructor.
 	 */
 	public function __construct() {
-		$this->namespace = 'editorial/v1';
+		$this->namespace = 'masthead/v1';
 		$this->rest_base = '';
 		$this->settings  = Masthead_Settings::get_instance();
 	}
@@ -36,6 +36,20 @@ class Masthead_REST_Controller extends WP_REST_Controller {
 	 * Register routes.
 	 */
 	public function register_routes() {
+		$this->register_routes_for_namespace( 'masthead/v1' );
+		$this->register_routes_for_namespace( 'editorial/v1' );
+	}
+
+	/**
+	 * Register routes for a namespace.
+	 *
+	 * The editorial/v1 namespace remains as a compatibility alias for clients
+	 * shipped before the Masthead namespace migration.
+	 */
+	private function register_routes_for_namespace( string $namespace ) {
+		$previous_namespace = $this->namespace;
+		$this->namespace    = $namespace;
+
 		// Staged Revisions routes (if feature is enabled).
 		if ( $this->settings->is_feature_enabled( 'staged_revisions' ) ) {
 			$this->register_staged_revision_routes();
@@ -48,6 +62,8 @@ class Masthead_REST_Controller extends WP_REST_Controller {
 
 		// General utility routes.
 		$this->register_utility_routes();
+
+		$this->namespace = $previous_namespace;
 	}
 
 	/**
@@ -576,7 +592,7 @@ class Masthead_REST_Controller extends WP_REST_Controller {
 	private function format_revision_for_response( $revision, $compare ) {
 		$author      = get_userdata( $revision->post_author );
 		$is_autosave = wp_is_post_autosave( $revision->ID );
-		$is_staged   = get_metadata( 'post', $revision->ID, '_editorial_staged_revision', true );
+		$is_staged   = get_metadata( 'post', $revision->ID, '_masthead_staged_revision', true );
 
 		// Determine what changed.
 		$changes = array();

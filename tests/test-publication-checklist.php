@@ -16,7 +16,7 @@ class Masthead_Publication_Checklist_Test extends WP_UnitTestCase {
 			'post_status' => 'publish',
 		) );
 
-		delete_post_meta( $post_id, '_editorial_checklist_bypassed' );
+		delete_post_meta( $post_id, '_masthead_checklist_bypassed' );
 
 		$request = new WP_REST_Request( 'POST', '/wp/v2/posts/' . $post_id );
 		$request->set_param( 'id', $post_id );

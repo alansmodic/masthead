@@ -89,7 +89,7 @@ class Masthead_Revision_Timeline {
 	private static function format_timeline_item( $revision, $previous ) {
 		$author = get_userdata( $revision->post_author );
 		$is_autosave = wp_is_post_autosave( $revision->ID );
-		$is_staged = get_metadata( 'post', $revision->ID, '_editorial_staged_revision', true );
+		$is_staged = get_metadata( 'post', $revision->ID, '_masthead_staged_revision', true );
 
 		// Determine changes
 		$changes = array();

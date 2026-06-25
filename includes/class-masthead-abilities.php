@@ -96,17 +96,19 @@ class Masthead_Abilities {
 	 * Register cross-cutting abilities (always available).
 	 */
 	private function register_cross_cutting_abilities() {
-		wp_register_ability( 'masthead/features.list', array(
+		wp_register_ability( 'masthead/list-features', array(
 			'label'               => __( 'List Editorial Features', 'masthead' ),
 			'description'         => __( 'Retrieve the status of all editorial workflow features.', 'masthead' ),
 			'category'            => 'masthead',
-			'callback'            => array( $this, 'ability_features_list' ),
+			'execute_callback'    => array( $this, 'ability_features_list' ),
 			'permission_callback' => function () {
 				return current_user_can( 'edit_posts' );
 			},
 			'input_schema'        => array(
-				'type'       => 'object',
-				'properties' => new \stdClass(),
+				'type'                 => 'object',
+				'properties'           => array(),
+				'additionalProperties' => false,
+				'default'              => array(),
 			),
 			'output_schema'       => array(
 				'type'                 => 'object',
@@ -124,11 +126,11 @@ class Masthead_Abilities {
 			),
 		) );
 
-		wp_register_ability( 'masthead/settings.update', array(
+		wp_register_ability( 'masthead/update-settings', array(
 			'label'               => __( 'Update Editorial Settings', 'masthead' ),
 			'description'         => __( 'Update Masthead plugin settings including feature toggles.', 'masthead' ),
 			'category'            => 'masthead',
-			'callback'            => array( $this, 'ability_settings_update' ),
+			'execute_callback'    => array( $this, 'ability_settings_update' ),
 			'permission_callback' => function () {
 				return current_user_can( 'manage_options' );
 			},
@@ -182,11 +184,11 @@ class Masthead_Abilities {
 			),
 		);
 
-		wp_register_ability( 'masthead/revision.create', array(
+		wp_register_ability( 'masthead/create-staged-revision', array(
 			'label'               => __( 'Create Staged Revision', 'masthead' ),
 			'description'         => __( 'Save changes to a published post as a staged revision without publishing immediately.', 'masthead' ),
 			'category'            => 'masthead',
-			'callback'            => array( $this, 'ability_revision_create' ),
+			'execute_callback' => array( $this, 'ability_revision_create' ),
 			'permission_callback' => function ( $input ) {
 				$post_id = $input['post_id'] ?? 0;
 				return $post_id && current_user_can( 'edit_post', $post_id );
@@ -221,11 +223,11 @@ class Masthead_Abilities {
 			'meta'                => array( 'show_in_rest' => true ),
 		) );
 
-		wp_register_ability( 'masthead/revision.get', array(
+		wp_register_ability( 'masthead/get-staged-revision', array(
 			'label'               => __( 'Get Staged Revision', 'masthead' ),
 			'description'         => __( 'Retrieve the staged revision for a specific post.', 'masthead' ),
 			'category'            => 'masthead',
-			'callback'            => array( $this, 'ability_revision_get' ),
+			'execute_callback' => array( $this, 'ability_revision_get' ),
 			'permission_callback' => function ( $input ) {
 				$post_id = $input['post_id'] ?? 0;
 				return $post_id && current_user_can( 'edit_post', $post_id );
@@ -247,11 +249,11 @@ class Masthead_Abilities {
 			),
 		) );
 
-		wp_register_ability( 'masthead/revision.approve', array(
+		wp_register_ability( 'masthead/approve-staged-revision', array(
 			'label'               => __( 'Approve Staged Revision', 'masthead' ),
 			'description'         => __( 'Approve a staged revision, marking it ready for publishing.', 'masthead' ),
 			'category'            => 'masthead',
-			'callback'            => array( $this, 'ability_revision_approve' ),
+			'execute_callback' => array( $this, 'ability_revision_approve' ),
 			'permission_callback' => function () {
 				return current_user_can( 'edit_others_posts' );
 			},
@@ -275,11 +277,11 @@ class Masthead_Abilities {
 			'meta'                => array( 'show_in_rest' => true ),
 		) );
 
-		wp_register_ability( 'masthead/revision.reject', array(
+		wp_register_ability( 'masthead/reject-staged-revision', array(
 			'label'               => __( 'Reject Staged Revision', 'masthead' ),
 			'description'         => __( 'Reject a staged revision, sending it back for further changes.', 'masthead' ),
 			'category'            => 'masthead',
-			'callback'            => array( $this, 'ability_revision_reject' ),
+			'execute_callback' => array( $this, 'ability_revision_reject' ),
 			'permission_callback' => function () {
 				return current_user_can( 'edit_others_posts' );
 			},
@@ -303,11 +305,11 @@ class Masthead_Abilities {
 			'meta'                => array( 'show_in_rest' => true ),
 		) );
 
-		wp_register_ability( 'masthead/revision.publish', array(
+		wp_register_ability( 'masthead/publish-staged-revision', array(
 			'label'               => __( 'Publish Staged Revision', 'masthead' ),
 			'description'         => __( 'Publish a staged revision, replacing the live post content immediately.', 'masthead' ),
 			'category'            => 'masthead',
-			'callback'            => array( $this, 'ability_revision_publish' ),
+			'execute_callback' => array( $this, 'ability_revision_publish' ),
 			'permission_callback' => function ( $input ) {
 				if ( ! current_user_can( 'publish_posts' ) ) {
 					return false;
@@ -339,11 +341,11 @@ class Masthead_Abilities {
 			'meta'                => array( 'show_in_rest' => true ),
 		) );
 
-		wp_register_ability( 'masthead/revision.discard', array(
+		wp_register_ability( 'masthead/discard-staged-revision', array(
 			'label'               => __( 'Discard Staged Revision', 'masthead' ),
 			'description'         => __( 'Permanently delete a staged revision.', 'masthead' ),
 			'category'            => 'masthead',
-			'callback'            => array( $this, 'ability_revision_discard' ),
+			'execute_callback' => array( $this, 'ability_revision_discard' ),
 			'permission_callback' => function ( $input ) {
 				$revision_id = $input['revision_id'] ?? 0;
 				if ( ! $revision_id ) {
@@ -376,17 +378,19 @@ class Masthead_Abilities {
 	 * Register publication checklist abilities.
 	 */
 	private function register_checklist_abilities() {
-		wp_register_ability( 'masthead/checklist.get', array(
+		wp_register_ability( 'masthead/get-checklist', array(
 			'label'               => __( 'Get Checklist Items', 'masthead' ),
 			'description'         => __( 'Retrieve the publication checklist items and their configuration.', 'masthead' ),
 			'category'            => 'masthead',
-			'callback'            => array( $this, 'ability_checklist_get' ),
+			'execute_callback'    => array( $this, 'ability_checklist_get' ),
 			'permission_callback' => function () {
 				return current_user_can( 'edit_posts' );
 			},
 			'input_schema'        => array(
-				'type'       => 'object',
-				'properties' => new \stdClass(),
+				'type'                 => 'object',
+				'properties'           => array(),
+				'additionalProperties' => false,
+				'default'              => array(),
 			),
 			'output_schema'       => array(
 				'type'  => 'array',
@@ -404,11 +408,11 @@ class Masthead_Abilities {
 			),
 		) );
 
-		wp_register_ability( 'masthead/checklist.validate', array(
+		wp_register_ability( 'masthead/validate-checklist', array(
 			'label'               => __( 'Validate Publication Checklist', 'masthead' ),
 			'description'         => __( 'Validate that all required checklist items are checked before publishing.', 'masthead' ),
 			'category'            => 'masthead',
-			'callback'            => array( $this, 'ability_checklist_validate' ),
+			'execute_callback' => array( $this, 'ability_checklist_validate' ),
 			'permission_callback' => function ( $input ) {
 				$post_id = $input['post_id'] ?? 0;
 				return $post_id && current_user_can( 'edit_post', $post_id );
@@ -454,11 +458,11 @@ class Masthead_Abilities {
 	 * Register scheduling abilities.
 	 */
 	private function register_scheduling_abilities() {
-		wp_register_ability( 'masthead/revision.schedule', array(
+		wp_register_ability( 'masthead/schedule-staged-revision', array(
 			'label'               => __( 'Schedule Staged Revision', 'masthead' ),
 			'description'         => __( 'Schedule a staged revision to be published at a specific future date and time.', 'masthead' ),
 			'category'            => 'masthead',
-			'callback'            => array( $this, 'ability_revision_schedule' ),
+			'execute_callback' => array( $this, 'ability_revision_schedule' ),
 			'permission_callback' => function ( $input ) {
 				if ( ! current_user_can( 'publish_posts' ) ) {
 					return false;
@@ -501,11 +505,11 @@ class Masthead_Abilities {
 	 * Register AI-powered editorial abilities.
 	 */
 	private function register_ai_abilities() {
-		wp_register_ability( 'masthead/content.review', array(
+		wp_register_ability( 'masthead/review-content', array(
 			'label'               => __( 'AI Editorial Review', 'masthead' ),
 			'description'         => __( 'Run an AI-powered editorial review on post content, checking grammar, style, and tone.', 'masthead' ),
 			'category'            => 'masthead',
-			'callback'            => array( $this, 'ability_content_review' ),
+			'execute_callback' => array( $this, 'ability_content_review' ),
 			'permission_callback' => function ( $input ) {
 				$post_id = $input['post_id'] ?? 0;
 				return $post_id && current_user_can( 'edit_post', $post_id );
@@ -548,11 +552,11 @@ class Masthead_Abilities {
 			'meta'                => array( 'show_in_rest' => true ),
 		) );
 
-		wp_register_ability( 'masthead/headline.suggest', array(
+		wp_register_ability( 'masthead/suggest-headlines', array(
 			'label'               => __( 'Suggest Headlines', 'masthead' ),
 			'description'         => __( 'Generate AI-powered headline suggestions for a post.', 'masthead' ),
 			'category'            => 'masthead',
-			'callback'            => array( $this, 'ability_headline_suggest' ),
+			'execute_callback' => array( $this, 'ability_headline_suggest' ),
 			'permission_callback' => function ( $input ) {
 				$post_id = $input['post_id'] ?? 0;
 				return $post_id && current_user_can( 'edit_post', $post_id );
@@ -588,23 +592,25 @@ class Masthead_Abilities {
 			'meta'                => array( 'show_in_rest' => true ),
 		) );
 
-		wp_register_ability( 'masthead/ai.status', array(
+		wp_register_ability( 'masthead/get-ai-status', array(
 			'label'               => __( 'AI Status', 'masthead' ),
 			'description'         => __( 'Check if AI editorial features are available and which provider is active.', 'masthead' ),
 			'category'            => 'masthead',
-			'callback'            => array( $this, 'ability_ai_status' ),
+			'execute_callback'    => array( $this, 'ability_ai_status' ),
 			'permission_callback' => function () {
 				return current_user_can( 'edit_posts' );
 			},
 			'input_schema'        => array(
-				'type'       => 'object',
-				'properties' => new \stdClass(),
+				'type'                 => 'object',
+				'properties'           => array(),
+				'additionalProperties' => false,
+				'default'              => array(),
 			),
 			'output_schema'       => array(
 				'type'       => 'object',
 				'properties' => array(
 					'available' => array( 'type' => 'boolean' ),
-					'provider'  => array( 'type' => 'string' ),
+					'provider'  => array( 'type' => array( 'string', 'null' ) ),
 					'message'   => array( 'type' => 'string' ),
 				),
 			),
@@ -614,11 +620,11 @@ class Masthead_Abilities {
 			),
 		) );
 
-		wp_register_ability( 'masthead/alt-text.generate', array(
+		wp_register_ability( 'masthead/generate-alt-text', array(
 			'label'               => __( 'Generate Alt Text', 'masthead' ),
 			'description'         => __( 'Generate accessible alt text for an image attachment using AI.', 'masthead' ),
 			'category'            => 'masthead',
-			'callback'            => array( $this, 'ability_generate_alt_text' ),
+			'execute_callback' => array( $this, 'ability_generate_alt_text' ),
 			'permission_callback' => function ( $input ) {
 				$attachment_id = $input['attachment_id'] ?? 0;
 				return $attachment_id && current_user_can( 'edit_post', $attachment_id );
@@ -654,11 +660,11 @@ class Masthead_Abilities {
 			'meta'                => array( 'show_in_rest' => true ),
 		) );
 
-		wp_register_ability( 'masthead/alt-text.scan', array(
+		wp_register_ability( 'masthead/scan-missing-alt-text', array(
 			'label'               => __( 'Scan for Missing Alt Text', 'masthead' ),
 			'description'         => __( 'Find images in a post that are missing alt text.', 'masthead' ),
 			'category'            => 'masthead',
-			'callback'            => array( $this, 'ability_scan_missing_alt' ),
+			'execute_callback' => array( $this, 'ability_scan_missing_alt' ),
 			'permission_callback' => function ( $input ) {
 				$post_id = $input['post_id'] ?? 0;
 				return $post_id && current_user_can( 'edit_post', $post_id );
@@ -701,11 +707,11 @@ class Masthead_Abilities {
 			'meta'                => array( 'show_in_rest' => true ),
 		) );
 
-		wp_register_ability( 'masthead/tone.analyze', array(
+		wp_register_ability( 'masthead/analyze-tone', array(
 			'label'               => __( 'Analyze Tone & Readability', 'masthead' ),
 			'description'         => __( 'Analyze content tone, reading level, audience fit, and provide improvement suggestions.', 'masthead' ),
 			'category'            => 'masthead',
-			'callback'            => array( $this, 'ability_analyze_tone' ),
+			'execute_callback' => array( $this, 'ability_analyze_tone' ),
 			'permission_callback' => function ( $input ) {
 				$post_id = $input['post_id'] ?? 0;
 				return $post_id && current_user_can( 'edit_post', $post_id );
@@ -746,11 +752,11 @@ class Masthead_Abilities {
 	 * Register revision timeline abilities.
 	 */
 	private function register_timeline_abilities() {
-		wp_register_ability( 'masthead/timeline.get', array(
+		wp_register_ability( 'masthead/get-timeline', array(
 			'label'               => __( 'Get Revision Timeline', 'masthead' ),
 			'description'         => __( 'Retrieve the revision timeline for a post, including change metadata and author information.', 'masthead' ),
 			'category'            => 'masthead',
-			'callback'            => array( $this, 'ability_timeline_get' ),
+			'execute_callback' => array( $this, 'ability_timeline_get' ),
 			'permission_callback' => function ( $input ) {
 				$post_id = $input['post_id'] ?? 0;
 				return $post_id && current_user_can( 'edit_post', $post_id );
@@ -805,11 +811,11 @@ class Masthead_Abilities {
 			),
 		) );
 
-		wp_register_ability( 'masthead/revision.diff', array(
+		wp_register_ability( 'masthead/diff-revision', array(
 			'label'               => __( 'Get Revision Diff', 'masthead' ),
 			'description'         => __( 'Get a detailed diff between a revision and its predecessor, including word-level changes and media changes when enabled.', 'masthead' ),
 			'category'            => 'masthead',
-			'callback'            => array( $this, 'ability_revision_diff' ),
+			'execute_callback' => array( $this, 'ability_revision_diff' ),
 			'permission_callback' => function ( $input ) {
 				$revision_id = $input['revision_id'] ?? 0;
 				if ( ! $revision_id ) {
@@ -846,11 +852,11 @@ class Masthead_Abilities {
 			),
 		) );
 
-		wp_register_ability( 'masthead/revision.restore', array(
+		wp_register_ability( 'masthead/restore-revision', array(
 			'label'               => __( 'Restore Revision', 'masthead' ),
 			'description'         => __( 'Restore a post to a previous revision, replacing its current content.', 'masthead' ),
 			'category'            => 'masthead',
-			'callback'            => array( $this, 'ability_revision_restore' ),
+			'execute_callback' => array( $this, 'ability_revision_restore' ),
 			'permission_callback' => function ( $input ) {
 				$revision_id = $input['revision_id'] ?? 0;
 				if ( ! $revision_id ) {
@@ -879,11 +885,11 @@ class Masthead_Abilities {
 			'meta'                => array( 'show_in_rest' => true ),
 		) );
 
-		wp_register_ability( 'masthead/revision.summarize', array(
+		wp_register_ability( 'masthead/summarize-revision', array(
 			'label'               => __( 'Summarize Revision Changes', 'masthead' ),
 			'description'         => __( 'Generate a plain-English AI summary of what changed in a revision. Uses WP AI Client (7.0+) when available.', 'masthead' ),
 			'category'            => 'masthead',
-			'callback'            => array( $this, 'ability_revision_summarize' ),
+			'execute_callback' => array( $this, 'ability_revision_summarize' ),
 			'permission_callback' => function ( $input ) {
 				$revision_id = $input['revision_id'] ?? 0;
 				if ( ! $revision_id ) {
@@ -1163,7 +1169,7 @@ class Masthead_Abilities {
 		$result = $checklist->validate_checklist( $checked_items );
 
 		if ( $result['valid'] ) {
-			update_post_meta( $input['post_id'], '_editorial_checklist_bypassed', true );
+			update_post_meta( $input['post_id'], '_masthead_checklist_bypassed', true );
 		}
 
 		return $result;
