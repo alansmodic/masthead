@@ -347,6 +347,27 @@ class Masthead_REST_Controller extends WP_REST_Controller {
 				),
 			)
 		);
+
+		if ( $this->settings->is_feature_enabled( 'publication_checklist' ) ) {
+			register_rest_route(
+				$this->namespace,
+				'/posts/(?P<post_id>[\d]+)/checklist',
+				array(
+					array(
+						'methods'             => WP_REST_Server::READABLE,
+						'callback'            => array( $this, 'get_post_checklist' ),
+						'permission_callback' => array( $this, 'post_checklist_permissions_check' ),
+						'args'                => array(
+							'post_id' => array(
+								'required'          => true,
+								'type'              => 'integer',
+								'sanitize_callback' => 'absint',
+							),
+						),
+					),
+				)
+			);
+		}
 	}
 
 	/**
@@ -488,6 +509,64 @@ class Masthead_REST_Controller extends WP_REST_Controller {
 		}
 
 		return rest_ensure_response( $response );
+	}
+
+	/**
+	 * Get contextual publication checklist for a post.
+	 *
+	 * @param WP_REST_Request $request Request object.
+	 * @return WP_REST_Response|WP_Error
+	 */
+	public function get_post_checklist( $request ) {
+		if ( ! class_exists( 'Masthead_Publication_Checklist' ) ) {
+			return new WP_Error( 'feature_disabled', __( 'Publication checklist feature is disabled.', 'masthead' ), array( 'status' => 404 ) );
+		}
+
+		$post_id = absint( $request->get_param( 'post_id' ) );
+		$items   = Masthead_Publication_Checklist::get_instance()->get_checklist_items( $post_id );
+
+		return rest_ensure_response( array(
+			'post_id' => $post_id,
+			'items'   => $items,
+			'summary' => $this->summarize_checklist_items( $items ),
+		) );
+	}
+
+	/**
+	 * Summarize checklist item states.
+	 *
+	 * @param array $items Checklist items.
+	 * @return array
+	 */
+	private function summarize_checklist_items( array $items ): array {
+		$summary = array(
+			'total'       => count( $items ),
+			'required'    => 0,
+			'passing'     => 0,
+			'warnings'    => 0,
+			'blocking'    => 0,
+			'unavailable' => 0,
+		);
+
+		foreach ( $items as $item ) {
+			$status = $item['status'] ?? 'manual';
+
+			if ( ! empty( $item['required'] ) ) {
+				$summary['required']++;
+			}
+
+			if ( 'pass' === $status ) {
+				$summary['passing']++;
+			} elseif ( 'warning' === $status ) {
+				$summary['warnings']++;
+			} elseif ( 'fail' === $status ) {
+				$summary['blocking']++;
+			} elseif ( 'unavailable' === $status ) {
+				$summary['unavailable']++;
+			}
+		}
+
+		return $summary;
 	}
 
 	/**
@@ -814,6 +893,22 @@ class Masthead_REST_Controller extends WP_REST_Controller {
 	 */
 	public function get_features_permissions_check( $request ) {
 		return current_user_can( 'edit_posts' );
+	}
+
+	/**
+	 * Check permissions for getting a post checklist.
+	 *
+	 * @param WP_REST_Request $request Request object.
+	 * @return bool|WP_Error
+	 */
+	public function post_checklist_permissions_check( $request ) {
+		$post_id = absint( $request->get_param( 'post_id' ) );
+
+		if ( ! $post_id || ! get_post( $post_id ) ) {
+			return new WP_Error( 'not_found', __( 'Post not found.', 'masthead' ), array( 'status' => 404 ) );
+		}
+
+		return current_user_can( 'edit_post', $post_id );
 	}
 
 	// Placeholder methods for feature-specific functionality.

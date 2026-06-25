@@ -35,6 +35,7 @@ require_once MASTHEAD_INCLUDES_DIR . 'class-masthead-github-installer.php';
 require_once MASTHEAD_INCLUDES_DIR . 'class-masthead-github-updater.php';
 require_once MASTHEAD_INCLUDES_DIR . 'features/class-staged-revisions.php';
 require_once MASTHEAD_INCLUDES_DIR . 'features/class-publication-checklist.php';
+require_once MASTHEAD_INCLUDES_DIR . 'features/class-smart-checklist.php';
 require_once MASTHEAD_INCLUDES_DIR . 'features/class-scheduled-publishing.php';
 require_once MASTHEAD_ADMIN_DIR . 'class-masthead-admin.php';
 require_once MASTHEAD_PLUGIN_DIR . 'archive/class-revision-timeline.php';
@@ -66,6 +67,7 @@ function masthead_init() {
 
 	if ( $settings->is_feature_enabled( 'publication_checklist' ) ) {
 		Masthead_Publication_Checklist::get_instance();
+		Masthead_Smart_Checklist::get_instance();
 	}
 
 	if ( $settings->is_feature_enabled( 'scheduled_publishing' ) ) {

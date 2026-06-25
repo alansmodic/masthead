@@ -115,6 +115,11 @@ class Masthead {
 		wp_enqueue_style( 'masthead-editor', MASTHEAD_ASSETS_URL . 'css/editor.css', [], MASTHEAD_VERSION );
 
 		$settings = Masthead_Settings::get_instance();
+		$checklist_config = array( 'enabled' => false );
+		if ( $settings->is_feature_enabled( 'publication_checklist' ) && class_exists( 'Masthead_Publication_Checklist' ) ) {
+			$checklist_config = Masthead_Publication_Checklist::get_instance()->get_frontend_config( $post->ID );
+		}
+
 		wp_localize_script( 'masthead-editor', 'mastheadData', [
 			'postId'           => $post->ID,
 			'stagedRevisionId' => (int) get_post_meta( $post->ID, '_masthead_has_staged_revision', true ),
@@ -122,6 +127,9 @@ class Masthead {
 			'siteUrl'          => get_site_url(),
 			'features'         => $settings->get_enabled_features(),
 			'modules'          => Masthead_Module_Registry::get_instance()->get_all(),
+			'config'           => [
+				'checklist' => $checklist_config,
+			],
 			'strings'          => $this->editor_strings(),
 		] );
 	}
