@@ -70,6 +70,7 @@ class Masthead_Admin {
 		$avail_features   = $this->settings->get_available_features();
 		$avail_integ      = $this->settings->get_available_integrations();
 		$checklist_items  = $this->settings->get_checklist_items();
+		$settings_obj     = $this->settings;
 		include MASTHEAD_ADMIN_DIR . 'views/settings.php';
 	}
 

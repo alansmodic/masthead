@@ -31,4 +31,31 @@ class Masthead_Publication_Checklist_Test extends WP_UnitTestCase {
 		$this->assertInstanceOf( WP_Error::class, $result );
 		$this->assertSame( 'masthead_checklist_required', $result->get_error_code() );
 	}
+
+	public function test_contextual_checklist_filter_participates_in_validation() {
+		$post_id = self::factory()->post->create( array(
+			'post_status' => 'publish',
+		) );
+
+		$callback = function ( $items, $filtered_post_id ) use ( $post_id ) {
+			if ( (int) $filtered_post_id === (int) $post_id ) {
+				$items[] = array(
+					'label'    => 'AI editorial review has passed',
+					'required' => true,
+				);
+			}
+
+			return $items;
+		};
+
+		add_filter( 'masthead_publication_checklist_items', $callback, 10, 2 );
+
+		$checklist = Masthead_Publication_Checklist::get_instance();
+		$result = $checklist->validate_checklist( array( 0, 1 ), $post_id );
+
+		remove_filter( 'masthead_publication_checklist_items', $callback, 10 );
+
+		$this->assertFalse( $result['valid'] );
+		$this->assertSame( 'AI editorial review has passed', $result['missing_required'][0]['label'] );
+	}
 }

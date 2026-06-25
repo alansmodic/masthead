@@ -233,6 +233,12 @@ class Masthead_Settings {
 		return $integrations[ $key ] ?? $default;
 	}
 
+	public function is_integration_enabled( string $key ): bool {
+		$integrations = $this->get_integrations();
+
+		return ! empty( $integrations[ $key ] ) && $this->check_integration_dependencies( $key );
+	}
+
 	public function get_integrations(): array {
 		if ( null === $this->integration_cache ) {
 			$stored = get_option( self::OPTION_INTEGRATIONS, [] );
@@ -246,6 +252,22 @@ class Masthead_Settings {
 
 	public function get_available_integrations(): array {
 		return $this->integrations;
+	}
+
+	public function check_integration_dependencies( string $key ): bool {
+		if ( ! isset( $this->integrations[ $key ] ) ) {
+			return false;
+		}
+
+		return Masthead_Module_Registry::get_instance()->requirements_met( $this->integrations[ $key ]['requires'] );
+	}
+
+	public function get_missing_integration_dependencies( string $key ): array {
+		if ( ! isset( $this->integrations[ $key ] ) ) {
+			return [];
+		}
+
+		return Masthead_Module_Registry::get_instance()->missing_requirements( $this->integrations[ $key ]['requires'] );
 	}
 
 	// -------------------------------------------------------------------------
@@ -333,7 +355,7 @@ class Masthead_Settings {
 		$input    = $_POST['integrations'] ?? [];
 		$sanitized = [];
 		foreach ( $this->integrations as $key => $setting ) {
-			$sanitized[ $key ] = ! empty( $input[ $key ] );
+			$sanitized[ $key ] = ! empty( $input[ $key ] ) && $this->check_integration_dependencies( $key );
 		}
 		update_option( self::OPTION_INTEGRATIONS, $sanitized );
 		$this->integration_cache = null;

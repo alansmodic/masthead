@@ -75,8 +75,10 @@ class Masthead_Publication_Checklist {
 	 *
 	 * @return array
 	 */
-	public function get_checklist_items() {
-		return $this->settings->get_checklist_items();
+	public function get_checklist_items( $post_id = 0 ) {
+		$items = $this->settings->get_checklist_items();
+
+		return apply_filters( 'masthead_publication_checklist_items', $items, (int) $post_id );
 	}
 
 	/**
@@ -297,7 +299,7 @@ class Masthead_Publication_Checklist {
 		}
 
 		$checked_items = $_POST['checked_items'] ?? array();
-		$validation_result = $this->validate_checklist( $checked_items );
+		$validation_result = $this->validate_checklist( $checked_items, $post_id );
 
 		if ( $validation_result['valid'] ) {
 			// Set bypass flag (checklist was completed).
@@ -325,8 +327,8 @@ class Masthead_Publication_Checklist {
 	 * @param array $checked_items Array of checked item indices.
 	 * @return array Validation result.
 	 */
-	public function validate_checklist( $checked_items ) {
-		$checklist_items = $this->get_checklist_items();
+	public function validate_checklist( $checked_items, $post_id = 0 ) {
+		$checklist_items = $this->get_checklist_items( $post_id );
 		$missing_required = array();
 
 		foreach ( $checklist_items as $index => $item ) {
@@ -389,7 +391,7 @@ class Masthead_Publication_Checklist {
 	 * @param array $checked_items Checked items.
 	 */
 	private function log_checklist_completion( $post_id, $checked_items ) {
-		$checklist_items = $this->get_checklist_items();
+		$checklist_items = $this->get_checklist_items( $post_id );
 		$completed_items = array();
 
 		foreach ( $checked_items as $index ) {

@@ -19,18 +19,25 @@
 							<span class="masthead-badge masthead-badge-active">✓ Active</span>
 						<?php elseif ( $module['installed'] ) : ?>
 							<span class="masthead-badge masthead-badge-installed">Installed</span>
+							<?php if ( ! empty( $module['activatable'] ) ) : ?>
 							<button type="button"
 								class="button button-primary button-small masthead-activate-btn"
 								data-module="<?php echo esc_attr( $id ); ?>"
 							><?php esc_html_e( 'Activate', 'masthead' ); ?></button>
+							<?php endif; ?>
 						<?php else : ?>
 							<span class="masthead-badge masthead-badge-missing">Not installed</span>
+							<?php if ( ! empty( $module['installable'] ) ) : ?>
 							<button type="button"
 								class="button button-primary button-small masthead-install-btn"
 								data-module="<?php echo esc_attr( $id ); ?>"
 							><?php esc_html_e( 'Install', 'masthead' ); ?></button>
+							<?php endif; ?>
 						<?php endif; ?>
 						<p class="description"><?php echo esc_html( $module['description'] ); ?></p>
+						<?php if ( ! empty( $module['message'] ) ) : ?>
+							<p class="description"><?php echo esc_html( $module['message'] ); ?></p>
+						<?php endif; ?>
 					</td>
 				</tr>
 				<?php endforeach; ?>
@@ -119,7 +126,9 @@
 				<tbody>
 				<?php foreach ( $avail_integ as $key => $setting ) :
 					$requires_labels = array_map( fn( $id ) => $modules[ $id ]['label'] ?? $id, $setting['requires'] );
-					$all_active = array_reduce( $setting['requires'], fn( $carry, $id ) => $carry && ( $modules[ $id ]['active'] ?? false ), true );
+					$missing_requires = $settings_obj->get_missing_integration_dependencies( $key );
+					$missing_labels = array_map( fn( $id ) => $modules[ $id ]['label'] ?? $id, $missing_requires );
+					$all_active = empty( $missing_requires );
 				?>
 				<tr class="<?php echo $all_active ? '' : 'masthead-integration-inactive'; ?>">
 					<th scope="row">
@@ -142,8 +151,15 @@
 						<p class="description masthead-requires-notice">
 							<?php printf(
 								/* translators: %s: list of required modules */
-								esc_html__( 'Requires: %s', 'masthead' ),
+								esc_html__( 'Requires active modules: %s', 'masthead' ),
 								esc_html( implode( ' + ', $requires_labels ) )
+							); ?>
+						</p>
+						<p class="description masthead-requires-notice">
+							<?php printf(
+								/* translators: %s: list of missing modules */
+								esc_html__( 'Missing: %s', 'masthead' ),
+								esc_html( implode( ' + ', $missing_labels ) )
 							); ?>
 						</p>
 						<?php endif; ?>

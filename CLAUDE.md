@@ -54,9 +54,9 @@ The `test:php` script expects the plugin to be mounted at `wp-content/plugins/ma
 
 2. **Cross-plugin integrations** under `includes/integrations/` — files are required unconditionally, but their singletons are only instantiated when **both sides** are active:
    - `Masthead_Edit_Ledger_Rewrites` — guarded by `$registry->is_active( 'edit-ledger' ) && $registry->is_active( 'rewrites' )`
-   - `Masthead_AI_Rewrites` — guarded by `function_exists( 'wp_ai_client_prompt' )`
+   - `Masthead_AI_Rewrites` — guarded by the module registry plus enabled integration settings
 
-   When adding a new integration, follow this pattern: require the file at top level of `masthead.php`, then instantiate inside `masthead_init()` behind a registry / `function_exists` guard. **Never call sibling-plugin functions outside that guard** — they may not be loaded.
+   When adding a new integration, follow this pattern: require the file at top level of `masthead.php`, then instantiate inside `masthead_init()` behind registry and settings guards. **Never call sibling-plugin functions outside that guard** — they may not be loaded. Runtime hooks should prefer Masthead-native hooks such as `masthead_staged_revision_submitted` and `masthead_can_publish_staged_revision`, while keeping legacy sibling-plugin hooks only as compatibility shims.
 
 3. **Masthead's own features** under `includes/features/` — `class-publication-checklist.php`, `class-scheduled-publishing.php`, `class-staged-revisions.php`. Distinct from coordinator glue.
 

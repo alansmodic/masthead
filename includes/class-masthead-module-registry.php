@@ -79,6 +79,13 @@ class Masthead_Module_Registry {
 	}
 
 	/**
+	 * Check whether a module is known to Masthead.
+	 */
+	public function exists( string $module ): bool {
+		return isset( self::MODULES[ $module ] );
+	}
+
+	/**
 	 * Check if a module is installed (but not necessarily active).
 	 */
 	public function is_installed( string $module ): bool {
@@ -101,14 +108,69 @@ class Masthead_Module_Registry {
 	}
 
 	/**
+	 * Check whether a module can be installed by Masthead.
+	 */
+	public function is_installable( string $module ): bool {
+		if ( ! isset( self::MODULES[ $module ] ) ) {
+			return false;
+		}
+
+		$meta = self::MODULES[ $module ];
+
+		return empty( $meta['builtin'] ) && ! empty( $meta['file'] ) && ! empty( $meta['repo'] );
+	}
+
+	/**
+	 * Check whether a module can be activated by Masthead.
+	 */
+	public function is_activatable( string $module ): bool {
+		return $this->is_installable( $module ) && $this->is_installed( $module ) && ! $this->is_active( $module );
+	}
+
+	/**
+	 * Check whether all required modules are active.
+	 */
+	public function requirements_met( array $modules ): bool {
+		foreach ( $modules as $module ) {
+			if ( ! $this->is_active( $module ) ) {
+				return false;
+			}
+		}
+
+		return true;
+	}
+
+	/**
+	 * Return required modules that are not currently active.
+	 */
+	public function missing_requirements( array $modules ): array {
+		$missing = [];
+
+		foreach ( $modules as $module ) {
+			if ( ! $this->is_active( $module ) ) {
+				$missing[] = $module;
+			}
+		}
+
+		return $missing;
+	}
+
+	/**
 	 * Get all modules with their current status.
 	 */
 	public function get_all(): array {
 		$result = [];
 		foreach ( self::MODULES as $id => $meta ) {
+			$active    = $this->is_active( $id );
+			$installed = $this->is_installed( $id );
+
 			$result[ $id ] = array_merge( $meta, [
-				'active'    => $this->is_active( $id ),
-				'installed' => $this->is_installed( $id ),
+				'active'      => $active,
+				'installed'   => $installed,
+				'installable' => $this->is_installable( $id ),
+				'activatable' => $this->is_activatable( $id ),
+				'status'      => $this->get_status( $id, $active, $installed ),
+				'message'     => $this->get_status_message( $id, $active, $installed ),
 			] );
 		}
 		return $result;
@@ -118,7 +180,7 @@ class Masthead_Module_Registry {
 	 * Get only active module IDs.
 	 */
 	public function active_modules(): array {
-		return array_keys( array_filter(
+		return array_values( array_filter(
 			array_keys( self::MODULES ),
 			fn( $id ) => $this->is_active( $id )
 		) );
@@ -132,5 +194,43 @@ class Masthead_Module_Registry {
 			'wordpress-ai' => function_exists( 'wp_ai_client_prompt' ),
 			default        => false,
 		};
+	}
+
+	/**
+	 * Get a machine-readable module status.
+	 */
+	private function get_status( string $module, bool $active, bool $installed ): string {
+		if ( $active ) {
+			return 'active';
+		}
+
+		if ( ! empty( self::MODULES[ $module ]['builtin'] ) ) {
+			return 'unavailable';
+		}
+
+		if ( $installed ) {
+			return 'installed';
+		}
+
+		return 'missing';
+	}
+
+	/**
+	 * Get a human-readable module status message.
+	 */
+	private function get_status_message( string $module, bool $active, bool $installed ): string {
+		if ( $active ) {
+			return __( 'Active and available.', 'masthead' );
+		}
+
+		if ( ! empty( self::MODULES[ $module ]['builtin'] ) ) {
+			return __( 'Built-in API not available in this WordPress environment.', 'masthead' );
+		}
+
+		if ( $installed ) {
+			return __( 'Installed but not active.', 'masthead' );
+		}
+
+		return __( 'Not installed.', 'masthead' );
 	}
 }
