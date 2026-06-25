@@ -135,7 +135,7 @@
             if (!postId || !isPostPublished || !features.staged_revisions) return;
 
             setIsLoading(true);
-            apiFetch({ path: `editorial/v1/posts/${postId}/staged` })
+            apiFetch({ path: `masthead/v1/posts/${postId}/staged` })
                 .then((response) => {
                     setStagedRevision(response);
                     setNotes(response.notes || '');
@@ -164,7 +164,7 @@
 
             try {
                 const response = await apiFetch({
-                    path: `editorial/v1/posts/${postId}/staged`,
+                    path: `masthead/v1/posts/${postId}/staged`,
                     method: 'POST',
                     data: {
                         title: editedTitle,
@@ -212,7 +212,7 @@
 
             try {
                 const response = await apiFetch({
-                    path: `editorial/v1/posts/${postId}/staged`,
+                    path: `masthead/v1/posts/${postId}/staged`,
                     method: 'POST',
                     data: {
                         title: editedTitle,
@@ -249,7 +249,7 @@
 
             try {
                 await apiFetch({
-                    path: `editorial/v1/staged/${stagedRevision.revision_id}/publish`,
+                    path: `masthead/v1/staged/${stagedRevision.revision_id}/publish`,
                     method: 'POST',
                 });
 
@@ -279,7 +279,7 @@
 
             try {
                 const response = await apiFetch({
-                    path: `editorial/v1/staged/${stagedRevision.revision_id}/schedule`,
+                    path: `masthead/v1/staged/${stagedRevision.revision_id}/schedule`,
                     method: 'POST',
                     data: {
                         publish_date: scheduleDate.toISOString(),
@@ -288,7 +288,7 @@
 
                 // Refresh staged revision data.
                 const updated = await apiFetch({
-                    path: `editorial/v1/posts/${postId}/staged`
+                    path: `masthead/v1/posts/${postId}/staged`
                 });
                 setStagedRevision(updated);
                 setShowScheduler(false);
@@ -314,7 +314,7 @@
 
             try {
                 await apiFetch({
-                    path: `editorial/v1/staged/${stagedRevision.revision_id}`,
+                    path: `masthead/v1/staged/${stagedRevision.revision_id}`,
                     method: 'DELETE',
                 });
 

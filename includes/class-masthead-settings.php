@@ -40,6 +40,12 @@ class Masthead_Settings {
 			'default'     => true,
 			'requires'    => [ 'staged_revisions' ],
 		],
+		'revision_timeline' => [
+			'label'       => 'Revision Timeline',
+			'description' => 'Review revision history and compare editorial changes.',
+			'default'     => true,
+			'requires'    => [],
+		],
 	];
 
 	/**
@@ -82,6 +88,7 @@ class Masthead_Settings {
 	private function __construct() {
 		add_action( 'admin_init', [ $this, 'register_settings' ] );
 		add_action( 'wp_ajax_masthead_save_settings', [ $this, 'ajax_save_settings' ] );
+		add_action( 'wp_ajax_masthead_reset_features', [ $this, 'ajax_reset_features' ] );
 	}
 
 	public function register_settings(): void {
@@ -140,6 +147,13 @@ class Masthead_Settings {
 		}
 	}
 
+	/**
+	 * Backward-compatible alias used by older tests and setup scripts.
+	 */
+	public static function set_default_features(): void {
+		self::set_defaults();
+	}
+
 	// -------------------------------------------------------------------------
 	// Features
 	// -------------------------------------------------------------------------
@@ -162,6 +176,52 @@ class Masthead_Settings {
 
 	public function get_available_features(): array {
 		return $this->features;
+	}
+
+	public function check_feature_dependencies( string $key ): bool {
+		if ( ! isset( $this->features[ $key ] ) ) {
+			return false;
+		}
+
+		foreach ( $this->features[ $key ]['requires'] as $dependency ) {
+			if ( ! $this->is_feature_enabled( $dependency ) ) {
+				return false;
+			}
+		}
+
+		return true;
+	}
+
+	public function get_dependent_features( string $key ): array {
+		$dependents = [];
+
+		foreach ( $this->features as $feature_key => $feature ) {
+			if ( in_array( $key, $feature['requires'], true ) ) {
+				$dependents[] = $feature_key;
+			}
+		}
+
+		return $dependents;
+	}
+
+	public function enable_feature( string $key ): bool {
+		return $this->set_feature_enabled( $key, true );
+	}
+
+	public function disable_feature( string $key ): bool {
+		return $this->set_feature_enabled( $key, false );
+	}
+
+	private function set_feature_enabled( string $key, bool $enabled ): bool {
+		if ( ! isset( $this->features[ $key ] ) ) {
+			return false;
+		}
+
+		$features         = $this->get_enabled_features();
+		$features[ $key ] = $enabled;
+		$this->feature_cache = null;
+
+		return update_option( self::OPTION_FEATURES, $features );
 	}
 
 	// -------------------------------------------------------------------------
@@ -238,6 +298,24 @@ class Masthead_Settings {
 			'general'      => $this->save_general(),
 			default        => wp_send_json_error( [ 'message' => 'Invalid section.' ] ),
 		};
+	}
+
+	public function ajax_reset_features(): void {
+		check_ajax_referer( 'masthead_admin', 'nonce' );
+
+		if ( ! current_user_can( 'manage_options' ) ) {
+			wp_send_json_error( [ 'message' => 'Permission denied.' ] );
+		}
+
+		$defaults = [];
+		foreach ( $this->features as $key => $feature ) {
+			$defaults[ $key ] = $feature['default'];
+		}
+
+		update_option( self::OPTION_FEATURES, $defaults );
+		$this->feature_cache = null;
+
+		wp_send_json_success( [ 'message' => 'Features reset.', 'features' => $defaults ] );
 	}
 
 	private function save_features(): void {

@@ -179,4 +179,11 @@ class Masthead {
 			)
 		);
 	}
+
+	/**
+	 * Check whether a post type supports Masthead editorial features.
+	 */
+	public static function post_type_supports_editorial( string $post_type ): bool {
+		return in_array( $post_type, self::supported_post_types(), true );
+	}
 }

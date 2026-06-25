@@ -51,6 +51,8 @@ class Masthead_Publication_Checklist {
 		// Only hook into publish flow if checklist is enabled.
 		if ( $this->is_checklist_enabled() ) {
 			add_action( 'transition_post_status', array( $this, 'handle_post_status_transition' ), 10, 3 );
+			add_action( 'wp_ajax_masthead_bypass_checklist', array( $this, 'ajax_bypass_checklist' ) );
+			add_action( 'wp_ajax_masthead_validate_checklist', array( $this, 'ajax_validate_checklist' ) );
 			add_action( 'wp_ajax_editorial_io_bypass_checklist', array( $this, 'ajax_bypass_checklist' ) );
 			add_action( 'wp_ajax_editorial_io_validate_checklist', array( $this, 'ajax_validate_checklist' ) );
 			add_filter( 'wp_insert_post_data', array( $this, 'enforce_checklist_on_save' ), 10, 2 );
@@ -129,9 +131,10 @@ class Masthead_Publication_Checklist {
 		}
 
 		// Check if checklist has been bypassed for this post.
-		$bypassed = get_post_meta( $post->ID, '_editorial_checklist_bypassed', true );
+		$bypassed = $this->get_post_meta_compat( $post->ID, 'checklist_bypassed' );
 		if ( $bypassed ) {
 			// Clean up bypass flag.
+			delete_post_meta( $post->ID, '_masthead_checklist_bypassed' );
 			delete_post_meta( $post->ID, '_editorial_checklist_bypassed' );
 			return;
 		}
@@ -173,7 +176,7 @@ class Masthead_Publication_Checklist {
 			return $data;
 		}
 
-		$bypassed = get_post_meta( $post_id, '_editorial_checklist_bypassed', true );
+		$bypassed = $this->get_post_meta_compat( $post_id, 'checklist_bypassed' );
 		if ( $bypassed ) {
 			return $data;
 		}
@@ -221,7 +224,7 @@ class Masthead_Publication_Checklist {
 			return $prepared_post;
 		}
 
-		$bypassed = get_post_meta( $post_id, '_editorial_checklist_bypassed', true );
+		$bypassed = $this->get_post_meta_compat( $post_id, 'checklist_bypassed' );
 		if ( $bypassed ) {
 			return $prepared_post;
 		}
@@ -272,7 +275,7 @@ class Masthead_Publication_Checklist {
 		$bypass_type = sanitize_key( $_POST['bypass_type'] ?? 'manual' );
 
 		// Set bypass flag.
-		update_post_meta( $post_id, '_editorial_checklist_bypassed', true );
+		update_post_meta( $post_id, '_masthead_checklist_bypassed', true );
 
 		// Log the bypass.
 		$this->log_checklist_bypass( $post_id, $bypass_type );
@@ -298,7 +301,7 @@ class Masthead_Publication_Checklist {
 
 		if ( $validation_result['valid'] ) {
 			// Set bypass flag (checklist was completed).
-			update_post_meta( $post_id, '_editorial_checklist_bypassed', true );
+			update_post_meta( $post_id, '_masthead_checklist_bypassed', true );
 
 			// Log checklist completion.
 			$this->log_checklist_completion( $post_id, $checked_items );
@@ -368,7 +371,7 @@ class Masthead_Publication_Checklist {
 		do_action( 'masthead_checklist_bypassed', $log_entry );
 
 		// Store in post meta for audit trail.
-		$existing_log = get_post_meta( $post_id, '_editorial_checklist_log', true );
+		$existing_log = $this->get_post_meta_compat( $post_id, 'checklist_log' );
 		if ( ! is_array( $existing_log ) ) {
 			$existing_log = array();
 		}
@@ -376,7 +379,7 @@ class Masthead_Publication_Checklist {
 
 		// Keep only last 10 entries.
 		$existing_log = array_slice( $existing_log, -10 );
-		update_post_meta( $post_id, '_editorial_checklist_log', $existing_log );
+		update_post_meta( $post_id, '_masthead_checklist_log', $existing_log );
 	}
 
 	/**
@@ -419,7 +422,7 @@ class Masthead_Publication_Checklist {
 		do_action( 'masthead_checklist_completed', $log_entry );
 
 		// Store in post meta for audit trail.
-		$existing_log = get_post_meta( $post_id, '_editorial_checklist_log', true );
+		$existing_log = $this->get_post_meta_compat( $post_id, 'checklist_log' );
 		if ( ! is_array( $existing_log ) ) {
 			$existing_log = array();
 		}
@@ -427,7 +430,7 @@ class Masthead_Publication_Checklist {
 
 		// Keep only last 10 entries.
 		$existing_log = array_slice( $existing_log, -10 );
-		update_post_meta( $post_id, '_editorial_checklist_log', $existing_log );
+		update_post_meta( $post_id, '_masthead_checklist_log', $existing_log );
 	}
 
 	/**
@@ -437,8 +440,33 @@ class Masthead_Publication_Checklist {
 	 * @return array Log entries.
 	 */
 	public function get_checklist_history( $post_id ) {
-		$log = get_post_meta( $post_id, '_editorial_checklist_log', true );
+		$log = $this->get_post_meta_compat( $post_id, 'checklist_log' );
 		return is_array( $log ) ? $log : array();
+	}
+
+	/**
+	 * Read Masthead checklist meta, migrating old Editorial IO keys on access.
+	 *
+	 * @param int    $post_id Post ID.
+	 * @param string $suffix  Meta key suffix without the Masthead prefix.
+	 * @return mixed
+	 */
+	private function get_post_meta_compat( $post_id, $suffix ) {
+		$new_key = '_masthead_' . $suffix;
+		$value   = get_post_meta( $post_id, $new_key, true );
+
+		if ( '' !== $value && null !== $value ) {
+			return $value;
+		}
+
+		$old_key = '_editorial_' . $suffix;
+		$value   = get_post_meta( $post_id, $old_key, true );
+
+		if ( '' !== $value && null !== $value ) {
+			update_post_meta( $post_id, $new_key, $value );
+		}
+
+		return $value;
 	}
 
 	/**
@@ -461,7 +489,7 @@ class Masthead_Publication_Checklist {
 		$query = $wpdb->prepare(
 			"SELECT p.ID, pm.meta_value as checklist_log
 			 FROM {$wpdb->posts} p
-			 INNER JOIN {$wpdb->postmeta} pm ON p.ID = pm.post_id AND pm.meta_key = '_editorial_checklist_log'
+			 INNER JOIN {$wpdb->postmeta} pm ON p.ID = pm.post_id AND pm.meta_key IN ('_masthead_checklist_log', '_editorial_checklist_log')
 			 WHERE p.post_type = %s
 			 AND p.post_date >= %s
 			 AND p.post_date <= %s

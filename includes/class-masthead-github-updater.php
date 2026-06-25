@@ -57,6 +57,10 @@ class Masthead_GitHub_Updater {
 		$versions = $this->get_remote_versions();
 
 		foreach ( Masthead_Module_Registry::MODULES as $id => $module ) {
+			if ( empty( $module['file'] ) ) {
+				continue;
+			}
+
 			if ( ! $registry->is_active( $id ) ) {
 				continue;
 			}
@@ -104,6 +108,10 @@ class Masthead_GitHub_Updater {
 		}
 
 		foreach ( Masthead_Module_Registry::MODULES as $id => $module ) {
+			if ( empty( $module['file'] ) ) {
+				continue;
+			}
+
 			$slug = dirname( $module['file'] );
 			if ( $args->slug !== $slug ) {
 				continue;
@@ -162,6 +170,10 @@ class Masthead_GitHub_Updater {
 		$available = [];
 
 		foreach ( Masthead_Module_Registry::MODULES as $id => $module ) {
+			if ( empty( $module['file'] ) ) {
+				continue;
+			}
+
 			if ( ! $registry->is_active( $id ) ) {
 				continue;
 			}
@@ -288,6 +300,10 @@ class Masthead_GitHub_Updater {
 		$status   = [];
 
 		foreach ( Masthead_Module_Registry::MODULES as $id => $module ) {
+			if ( empty( $module['file'] ) ) {
+				continue;
+			}
+
 			if ( ! $registry->is_active( $id ) ) {
 				continue;
 			}

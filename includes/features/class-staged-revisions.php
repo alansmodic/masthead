@@ -99,12 +99,12 @@ class Masthead_Staged_Revisions {
 			}
 
 			// Reset status to pending on update.
-			update_metadata( 'post', $revision_id, '_editorial_staged_status', 'pending' );
-			update_metadata( 'post', $revision_id, '_editorial_staged_author', get_current_user_id() );
+			update_metadata( 'post', $revision_id, '_masthead_staged_status', 'pending' );
+			update_metadata( 'post', $revision_id, '_masthead_staged_author', get_current_user_id() );
 
 			// Update notes if provided.
 			if ( ! empty( $meta_data['notes'] ) ) {
-				update_metadata( 'post', $revision_id, '_editorial_staged_notes', sanitize_textarea_field( $meta_data['notes'] ) );
+				update_metadata( 'post', $revision_id, '_masthead_staged_notes', sanitize_textarea_field( $meta_data['notes'] ) );
 			}
 
 			/** This action is documented below. */
@@ -131,18 +131,18 @@ class Masthead_Staged_Revisions {
 		}
 
 		// Add staged revision meta.
-		update_metadata( 'post', $revision_id, '_editorial_staged_revision', true );
-		update_metadata( 'post', $revision_id, '_editorial_staged_status', 'pending' );
-		update_metadata( 'post', $revision_id, '_editorial_staged_author', get_current_user_id() );
-		update_metadata( 'post', $revision_id, '_editorial_revision_type', 'staged' );
+		update_metadata( 'post', $revision_id, '_masthead_staged_revision', true );
+		update_metadata( 'post', $revision_id, '_masthead_staged_status', 'pending' );
+		update_metadata( 'post', $revision_id, '_masthead_staged_author', get_current_user_id() );
+		update_metadata( 'post', $revision_id, '_masthead_revision_type', 'staged' );
 
 		// Add custom meta data.
 		if ( ! empty( $meta_data['notes'] ) ) {
-			update_metadata( 'post', $revision_id, '_editorial_staged_notes', sanitize_textarea_field( $meta_data['notes'] ) );
+			update_metadata( 'post', $revision_id, '_masthead_staged_notes', sanitize_textarea_field( $meta_data['notes'] ) );
 		}
 
 		// Update parent post meta.
-		update_post_meta( $post_id, '_editorial_has_staged_revision', $revision_id );
+		update_post_meta( $post_id, '_masthead_has_staged_revision', $revision_id );
 
 		/**
 		 * Fired after a staged revision is created.
@@ -164,7 +164,13 @@ class Masthead_Staged_Revisions {
 	 * @return object|null The revision data or null.
 	 */
 	public static function get( $post_id ) {
-		$revision_id = get_post_meta( $post_id, '_editorial_has_staged_revision', true );
+		$revision_id = get_post_meta( $post_id, '_masthead_has_staged_revision', true );
+		if ( ! $revision_id ) {
+			$revision_id = get_post_meta( $post_id, '_editorial_has_staged_revision', true );
+			if ( $revision_id ) {
+				update_post_meta( $post_id, '_masthead_has_staged_revision', $revision_id );
+			}
+		}
 		if ( ! $revision_id ) {
 			return null;
 		}
@@ -172,6 +178,7 @@ class Masthead_Staged_Revisions {
 		$revision = get_post( $revision_id );
 		if ( ! $revision || 'revision' !== $revision->post_type ) {
 			// Clean up orphaned meta.
+			delete_post_meta( $post_id, '_masthead_has_staged_revision' );
 			delete_post_meta( $post_id, '_editorial_has_staged_revision' );
 			return null;
 		}
@@ -191,7 +198,7 @@ class Masthead_Staged_Revisions {
 			return null;
 		}
 
-		if ( ! get_metadata( 'post', $revision_id, '_editorial_staged_revision', true ) ) {
+		if ( ! self::get_revision_meta( $revision_id, 'staged_revision' ) ) {
 			return null;
 		}
 
@@ -218,7 +225,7 @@ class Masthead_Staged_Revisions {
 
 		$where_clauses = array(
 			"r.post_type = 'revision'",
-			"sr.meta_key = '_editorial_staged_revision'",
+			"sr.meta_key IN ('_masthead_staged_revision', '_editorial_staged_revision')",
 			"sr.meta_value = '1'",
 		);
 		$join_clauses = array(
@@ -228,7 +235,7 @@ class Masthead_Staged_Revisions {
 
 		// Filter by status.
 		if ( ! empty( $args['status'] ) ) {
-			$join_clauses[] = "INNER JOIN {$wpdb->postmeta} sm ON r.ID = sm.post_id AND sm.meta_key = '_editorial_staged_status'";
+			$join_clauses[] = "INNER JOIN {$wpdb->postmeta} sm ON r.ID = sm.post_id AND sm.meta_key IN ('_masthead_staged_status', '_editorial_staged_status')";
 			$where_clauses[] = $wpdb->prepare( "sm.meta_value = %s", $args['status'] );
 		}
 
@@ -317,7 +324,7 @@ class Masthead_Staged_Revisions {
 			return new WP_Error( 'revision_not_found', __( 'Staged revision not found.', 'masthead' ) );
 		}
 
-		update_metadata( 'post', $revision_id, '_editorial_staged_status', 'approved' );
+		update_metadata( 'post', $revision_id, '_masthead_staged_status', 'approved' );
 
 		/**
 		 * Fired after a staged revision is approved.
@@ -341,11 +348,11 @@ class Masthead_Staged_Revisions {
 			return new WP_Error( 'revision_not_found', __( 'Staged revision not found.', 'masthead' ) );
 		}
 
-		update_metadata( 'post', $revision_id, '_editorial_staged_status', 'rejected' );
+		update_metadata( 'post', $revision_id, '_masthead_staged_status', 'rejected' );
 
 		// Clear any scheduled publishing for this revision.
 		wp_clear_scheduled_hook( 'masthead_publish_staged', array( $revision_id ) );
-		delete_metadata( 'post', $revision_id, '_editorial_staged_publish_date' );
+		delete_metadata( 'post', $revision_id, '_masthead_staged_publish_date' );
 
 		/**
 		 * Fired after a staged revision is rejected.
@@ -378,7 +385,7 @@ class Masthead_Staged_Revisions {
 		}
 
 		// Clean up parent post meta.
-		delete_post_meta( $post_id, '_editorial_has_staged_revision' );
+		delete_post_meta( $post_id, '_masthead_has_staged_revision' );
 
 		/**
 		 * Fired after a staged revision is discarded.
@@ -424,8 +431,8 @@ class Masthead_Staged_Revisions {
 
 		// Update revision meta.
 		$publish_date_mysql = wp_date( 'Y-m-d H:i:s', $timestamp, $timezone );
-		update_metadata( 'post', $revision_id, '_editorial_staged_publish_date', $publish_date_mysql );
-		update_metadata( 'post', $revision_id, '_editorial_staged_status', 'scheduled' );
+		update_metadata( 'post', $revision_id, '_masthead_staged_publish_date', $publish_date_mysql );
+		update_metadata( 'post', $revision_id, '_masthead_staged_status', 'scheduled' );
 
 		// Clear any existing scheduled event for this revision to avoid duplicates.
 		wp_clear_scheduled_hook( 'masthead_publish_staged', array( $revision_id ) );
@@ -460,10 +467,10 @@ class Masthead_Staged_Revisions {
 			'post_type'          => isset( $revision->parent_type ) ? $revision->parent_type : get_post_type( $revision->post_parent ),
 			'post_modified'      => $revision->post_modified,
 			'revision_title'     => isset( $revision->parent_title ) ? $revision->parent_title : get_the_title( $revision->post_parent ),
-			'staged_author_id'   => (int) get_metadata( 'post', $revision->ID, '_editorial_staged_author', true ),
-			'staged_status'      => get_metadata( 'post', $revision->ID, '_editorial_staged_status', true ) ?: 'pending',
-			'scheduled_date'     => get_metadata( 'post', $revision->ID, '_editorial_staged_publish_date', true ) ?: null,
-			'notes'              => get_metadata( 'post', $revision->ID, '_editorial_staged_notes', true ) ?: '',
+			'staged_author_id'   => (int) self::get_revision_meta( $revision->ID, 'staged_author' ),
+			'staged_status'      => self::get_revision_meta( $revision->ID, 'staged_status' ) ?: 'pending',
+			'scheduled_date'     => self::get_revision_meta( $revision->ID, 'staged_publish_date' ) ?: null,
+			'notes'              => self::get_revision_meta( $revision->ID, 'staged_notes' ) ?: '',
 		);
 
 		return $formatted;
@@ -508,6 +515,7 @@ class Masthead_Staged_Revisions {
 	private static function cleanup_staged_revision( $revision_id ) {
 		$revision = get_post( $revision_id );
 		if ( $revision ) {
+			delete_post_meta( $revision->post_parent, '_masthead_has_staged_revision' );
 			delete_post_meta( $revision->post_parent, '_editorial_has_staged_revision' );
 		}
 
@@ -524,7 +532,7 @@ class Masthead_Staged_Revisions {
 	 */
 	public function protect_staged_revisions( $post_has_changed, $last_revision, $post ) {
 		// If the last revision is a staged revision, ensure WordPress creates a new revision.
-		if ( get_metadata( 'post', $last_revision->ID, '_editorial_staged_revision', true ) ) {
+		if ( self::get_revision_meta( $last_revision->ID, 'staged_revision' ) ) {
 			return true;
 		}
 
@@ -549,8 +557,8 @@ class Masthead_Staged_Revisions {
 		$old_revisions = $wpdb->get_results( $wpdb->prepare(
 			"SELECT r.ID, r.post_parent
 			 FROM {$wpdb->posts} r
-			 INNER JOIN {$wpdb->postmeta} sr ON r.ID = sr.post_id AND sr.meta_key = '_editorial_staged_revision' AND sr.meta_value = '1'
-			 LEFT JOIN {$wpdb->postmeta} sm ON r.ID = sm.post_id AND sm.meta_key = '_editorial_staged_status'
+			 INNER JOIN {$wpdb->postmeta} sr ON r.ID = sr.post_id AND sr.meta_key IN ('_masthead_staged_revision', '_editorial_staged_revision') AND sr.meta_value = '1'
+			 LEFT JOIN {$wpdb->postmeta} sm ON r.ID = sm.post_id AND sm.meta_key IN ('_masthead_staged_status', '_editorial_staged_status')
 			 WHERE r.post_type = 'revision'
 			 AND r.post_modified < %s
 			 AND (sm.meta_value IS NULL OR sm.meta_value IN ('pending', 'rejected'))",
@@ -690,5 +698,30 @@ class Masthead_Staged_Revisions {
 			'deleted' => true,
 			'message' => __( 'Staged revision discarded.', 'masthead' ),
 		) );
+	}
+
+	/**
+	 * Read staged revision metadata, migrating old Editorial IO keys on access.
+	 *
+	 * @param int    $revision_id Revision ID.
+	 * @param string $suffix      Meta key suffix without the Masthead prefix.
+	 * @return mixed
+	 */
+	private static function get_revision_meta( $revision_id, $suffix ) {
+		$new_key = '_masthead_' . $suffix;
+		$value   = get_metadata( 'post', $revision_id, $new_key, true );
+
+		if ( '' !== $value && null !== $value ) {
+			return $value;
+		}
+
+		$old_key = '_editorial_' . $suffix;
+		$value   = get_metadata( 'post', $revision_id, $old_key, true );
+
+		if ( '' !== $value && null !== $value ) {
+			update_metadata( 'post', $revision_id, $new_key, $value );
+		}
+
+		return $value;
 	}
 }

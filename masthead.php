@@ -30,9 +30,14 @@ require_once MASTHEAD_INCLUDES_DIR . 'class-masthead-module-registry.php';
 require_once MASTHEAD_INCLUDES_DIR . 'class-masthead-rest-controller.php';
 require_once MASTHEAD_INCLUDES_DIR . 'class-masthead-ai.php';
 require_once MASTHEAD_INCLUDES_DIR . 'class-masthead-connector.php';
+require_once MASTHEAD_INCLUDES_DIR . 'class-masthead-abilities.php';
 require_once MASTHEAD_INCLUDES_DIR . 'class-masthead-github-installer.php';
 require_once MASTHEAD_INCLUDES_DIR . 'class-masthead-github-updater.php';
+require_once MASTHEAD_INCLUDES_DIR . 'features/class-staged-revisions.php';
+require_once MASTHEAD_INCLUDES_DIR . 'features/class-publication-checklist.php';
+require_once MASTHEAD_INCLUDES_DIR . 'features/class-scheduled-publishing.php';
 require_once MASTHEAD_ADMIN_DIR . 'class-masthead-admin.php';
+require_once MASTHEAD_PLUGIN_DIR . 'archive/class-revision-timeline.php';
 
 // Cross-plugin integrations (loaded conditionally after plugins_loaded).
 require_once MASTHEAD_INCLUDES_DIR . 'integrations/class-masthead-edit-ledger-rewrites.php';
@@ -47,11 +52,29 @@ function masthead_init() {
 	Masthead_Admin::get_instance();
 	Masthead_AI::get_instance();
 	Masthead_Connector::get_instance();
+	Masthead_Abilities::get_instance();
 	Masthead_GitHub_Installer::get_instance();
 	Masthead_GitHub_Updater::get_instance();
 
 	// Load cross-plugin integrations only when both sides are active.
 	$registry = Masthead_Module_Registry::get_instance();
+	$settings = Masthead_Settings::get_instance();
+
+	if ( $settings->is_feature_enabled( 'staged_revisions' ) ) {
+		Masthead_Staged_Revisions::get_instance();
+	}
+
+	if ( $settings->is_feature_enabled( 'publication_checklist' ) ) {
+		Masthead_Publication_Checklist::get_instance();
+	}
+
+	if ( $settings->is_feature_enabled( 'scheduled_publishing' ) ) {
+		Masthead_Scheduled_Publishing::get_instance();
+	}
+
+	if ( $settings->is_feature_enabled( 'revision_timeline' ) ) {
+		Masthead_Revision_Timeline::get_instance();
+	}
 
 	if ( $registry->is_active( 'edit-ledger' ) && $registry->is_active( 'rewrites' ) ) {
 		Masthead_Edit_Ledger_Rewrites::get_instance();
